@@ -70,8 +70,10 @@
     </div>
   </div>
 
-  <!-- App principal -->
+  <!-- App principal (alumno) -->
   <div id="appContainer" class="screen" style="display: none;">
+    <!-- ... contenido igual que antes ... -->
+    <!-- (todo el contenido de la app del alumno se mantiene intacto) -->
     <div class="app-header">
       <button id="backToWelcome" class="btn-back">← Salir</button>
       <h2>🎵 Hola, <span id="userNameDisplay">Usuario</span></h2>
@@ -253,22 +255,52 @@
     <script src="script.js"></script>
   </div>
 
-  <!-- Script para manejar login/registro y estadísticas -->
+  <!-- ✅ PANEL DE ADMINISTRACIÓN (NUEVO) -->
+  <div id="adminPanel" class="screen" style="display: none; text-align: left; max-width: 800px;">
+    <div class="app-header">
+      <button id="backToAdminWelcome" class="btn-back">← Salir del panel</button>
+      <h2>🔑 Panel de Administración</h2>
+    </div>
+
+    <section class="control-section">
+      <h3>📊 Estadísticas</h3>
+      <p><strong>Usuarios registrados:</strong> <span id="adminUserCount">0</span></p>
+      <p><strong>Prácticas descargadas:</strong> <span id="adminDownloadCount">0</span></p>
+    </section>
+
+    <section class="control-section">
+      <h3>👥 Lista de usuarios</h3>
+      <div id="adminUserList" style="max-height: 300px; overflow-y: auto;">
+        <!-- Se llenará con JS -->
+      </div>
+    </section>
+
+    <section class="control-section">
+      <h3>🛠️ Herramientas</h3>
+      <button id="resetCounters" class="btn-primary" style="background: #ff6b6b;">Restablecer contadores</button>
+    </section>
+  </div>
+
+  <!-- Script (igual que antes, pero con lógica de admin añadida) -->
   <script>
-    // === Gestión de usuarios (localStorage) ===
+    // === Claves globales ===
     const usersKey = 'musicApp_users';
     const currentUserKey = 'musicApp_currentUser';
     const USER_COUNT_KEY = 'musicApp_userCount';
     const DOWNLOAD_COUNT_KEY = 'musicApp_downloadCount';
+    const isAdminKey = 'musicApp_isAdmin';
 
+    // Credenciales fijas de admin
+    const ADMIN_EMAIL = 'admin@mimusicapp.com';
+    const ADMIN_PASSWORD = 'admin123';
+
+    // === Funciones de usuario ===
     function saveUser(name, lastname, email, password) {
       let users = JSON.parse(localStorage.getItem(usersKey) || '[]');
       const exists = users.some(u => u.email === email);
       if (!exists) {
         users.push({ name, lastname, email, password });
         localStorage.setItem(usersKey, JSON.stringify(users));
-        
-        // Incrementar contador de usuarios
         const userCount = parseInt(localStorage.getItem(USER_COUNT_KEY) || '0') + 1;
         localStorage.setItem(USER_COUNT_KEY, userCount.toString());
       }
@@ -277,32 +309,36 @@
     }
 
     function login(email, password) {
+      // Comprobar si es admin
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        localStorage.setItem(isAdminKey, 'true');
+        return { name: 'Administrador', lastname: '', email, admin: true };
+      }
+
+      // Comprobar usuarios normales
       const users = JSON.parse(localStorage.getItem(usersKey) || '[]');
       const user = users.find(u => u.email === email && u.password === password);
       if (user) {
         localStorage.setItem(currentUserKey, email);
-        return { name: user.name, lastname: user.lastname, email: user.email };
+        localStorage.removeItem(isAdminKey);
+        return { name: user.name, lastname: user.lastname, email, admin: false };
       }
       return null;
     }
 
-    function getCurrentUser() {
-      const email = localStorage.getItem(currentUserKey);
-      if (!email) return null;
-      const users = JSON.parse(localStorage.getItem(usersKey) || '[]');
-      const user = users.find(u => u.email === email);
-      return user ? { name: user.name, lastname: user.lastname, email: user.email } : null;
-    }
-
     function logout() {
       localStorage.removeItem(currentUserKey);
+      localStorage.removeItem(isAdminKey);
     }
 
-    // Mostrar estadísticas
+    function isUserAdmin() {
+      return localStorage.getItem(isAdminKey) === 'true';
+    }
+
+    // === Mostrar estadísticas ===
     function displayStats() {
       const userCountEl = document.getElementById('userCount');
       const downloadCountEl = document.getElementById('downloadCount');
-      
       if (userCountEl && downloadCountEl) {
         const userCount = parseInt(localStorage.getItem(USER_COUNT_KEY) || '0');
         const downloadCount = parseInt(localStorage.getItem(DOWNLOAD_COUNT_KEY) || '0');
@@ -311,48 +347,65 @@
       }
     }
 
-    // === Manejo de formularios ===
+    // === Panel de administración ===
+    function renderAdminPanel() {
+      const adminUserCount = document.getElementById('adminUserCount');
+      const adminDownloadCount = document.getElementById('adminDownloadCount');
+      const adminUserList = document.getElementById('adminUserList');
+
+      const userCount = parseInt(localStorage.getItem(USER_COUNT_KEY) || '0');
+      const downloadCount = parseInt(localStorage.getItem(DOWNLOAD_COUNT_KEY) || '0');
+      const users = JSON.parse(localStorage.getItem(usersKey) || '[]');
+
+      adminUserCount.textContent = userCount;
+      adminDownloadCount.textContent = downloadCount;
+
+      if (users.length === 0) {
+        adminUserList.innerHTML = '<p>No hay usuarios registrados.</p>';
+      } else {
+        let html = '<ul>';
+        users.forEach(u => {
+          html += `<li>${u.name} ${u.lastname} — ${u.email}</li>`;
+        });
+        html += '</ul>';
+        adminUserList.innerHTML = html;
+      }
+    }
+
+    // === Manejo de formularios y pantallas ===
     document.addEventListener('DOMContentLoaded', () => {
       displayStats();
-      
-      const registerForm = document.getElementById('registerForm');
-      const loginForm = document.getElementById('loginForm');
-      const showLogin = document.getElementById('showLogin');
-      const showRegister = document.getElementById('showRegister');
-      const registerBtn = document.getElementById('registerBtn');
-      const loginBtn = document.getElementById('loginBtn');
-      
-      const regName = document.getElementById('regName');
-      const regLastname = document.getElementById('regLastname');
-      const regEmail = document.getElementById('regEmail');
-      const regPassword = document.getElementById('regPassword');
-      const regConfirmPassword = document.getElementById('regConfirmPassword');
-      const termsCheckbox = document.getElementById('termsCheckbox');
-      const privacyCheckbox = document.getElementById('privacyCheckbox');
-      
-      const loginEmail = document.getElementById('loginEmail');
-      const loginPassword = document.getElementById('loginPassword');
-      
-      const userNameDisplay = document.getElementById('userNameDisplay');
+
       const welcomeScreen = document.getElementById('welcomeScreen');
       const appContainer = document.getElementById('appContainer');
-      const backToWelcome = document.getElementById('backToWelcome');
+      const adminPanel = document.getElementById('adminPanel');
+      const loginForm = document.getElementById('loginForm');
+      const registerForm = document.getElementById('registerForm');
+      const userNameDisplay = document.getElementById('userNameDisplay');
 
-      // Mostrar/Ocultar formularios
-      showLogin?.addEventListener('click', (e) => {
+      // Botones de navegación
+      document.getElementById('showLogin')?.addEventListener('click', (e) => {
         e.preventDefault();
         registerForm.style.display = 'none';
         loginForm.style.display = 'block';
       });
 
-      showRegister?.addEventListener('click', (e) => {
+      document.getElementById('showRegister')?.addEventListener('click', (e) => {
         e.preventDefault();
         loginForm.style.display = 'none';
         registerForm.style.display = 'block';
       });
 
       // Registro
-      registerBtn?.addEventListener('click', () => {
+      document.getElementById('registerBtn')?.addEventListener('click', () => {
+        const regName = document.getElementById('regName');
+        const regLastname = document.getElementById('regLastname');
+        const regEmail = document.getElementById('regEmail');
+        const regPassword = document.getElementById('regPassword');
+        const regConfirmPassword = document.getElementById('regConfirmPassword');
+        const termsCheckbox = document.getElementById('termsCheckbox');
+        const privacyCheckbox = document.getElementById('privacyCheckbox');
+
         const name = regName.value.trim();
         const lastname = regLastname.value.trim();
         const email = regEmail.value.trim();
@@ -385,7 +438,9 @@
       });
 
       // Login
-      loginBtn?.addEventListener('click', () => {
+      document.getElementById('loginBtn')?.addEventListener('click', () => {
+        const loginEmail = document.getElementById('loginEmail');
+        const loginPassword = document.getElementById('loginPassword');
         const email = loginEmail.value.trim();
         const password = loginPassword.value;
         if (!email || !password) {
@@ -394,39 +449,69 @@
         }
         const user = login(email, password);
         if (user) {
-          userNameDisplay.textContent = `${user.name} ${user.lastname}`;
-          welcomeScreen.style.display = 'none';
-          appContainer.style.display = 'block';
+          if (user.admin) {
+            welcomeScreen.style.display = 'none';
+            adminPanel.style.display = 'block';
+            renderAdminPanel();
+          } else {
+            userNameDisplay.textContent = `${user.name} ${user.lastname}`;
+            welcomeScreen.style.display = 'none';
+            appContainer.style.display = 'block';
+          }
         } else {
           alert('Correo o contraseña incorrectos.');
         }
       });
 
-      // Volver a inicio (cerrar sesión)
-      backToWelcome?.addEventListener('click', () => {
+      // Volver a inicio (alumno)
+      document.getElementById('backToWelcome')?.addEventListener('click', () => {
         logout();
         appContainer.style.display = 'none';
         welcomeScreen.style.display = 'flex';
         loginForm.style.display = 'none';
         registerForm.style.display = 'block';
-        // Limpiar campos
-        regName.value = '';
-        regLastname.value = '';
-        regEmail.value = '';
-        regPassword.value = '';
-        regConfirmPassword.value = '';
-        termsCheckbox.checked = false;
-        privacyCheckbox.checked = false;
-        loginEmail.value = '';
-        loginPassword.value = '';
+        // Limpiar
+        ['regName','regLastname','regEmail','regPassword','regConfirmPassword','loginEmail','loginPassword'].forEach(id => {
+          document.getElementById(id).value = '';
+        });
+        document.getElementById('termsCheckbox').checked = false;
+        document.getElementById('privacyCheckbox').checked = false;
       });
 
-      // Verificar si ya hay usuario
-      const currentUser = getCurrentUser();
-      if (currentUser) {
-        userNameDisplay.textContent = `${currentUser.name} ${currentUser.lastname}`;
+      // Salir del panel de admin
+      document.getElementById('backToAdminWelcome')?.addEventListener('click', () => {
+        logout();
+        adminPanel.style.display = 'none';
+        welcomeScreen.style.display = 'flex';
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+        document.getElementById('loginEmail').value = '';
+        document.getElementById('loginPassword').value = '';
+      });
+
+      // Restablecer contadores (admin)
+      document.getElementById('resetCounters')?.addEventListener('click', () => {
+        if (confirm('¿Estás seguro de restablecer los contadores? Esta acción no se puede deshacer.')) {
+          localStorage.setItem(USER_COUNT_KEY, '0');
+          localStorage.setItem(DOWNLOAD_COUNT_KEY, '0');
+          renderAdminPanel();
+          displayStats();
+        }
+      });
+
+      // Verificar sesión al cargar
+      if (isUserAdmin()) {
         welcomeScreen.style.display = 'none';
-        appContainer.style.display = 'block';
+        adminPanel.style.display = 'block';
+        renderAdminPanel();
+      } else {
+        const currentUser = JSON.parse(localStorage.getItem(usersKey) || '[]')
+          .find(u => u.email === localStorage.getItem(currentUserKey));
+        if (currentUser) {
+          userNameDisplay.textContent = `${currentUser.name} ${currentUser.lastname}`;
+          welcomeScreen.style.display = 'none';
+          appPanel.style.display = 'block';
+        }
       }
     });
   </script>
