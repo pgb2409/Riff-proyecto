@@ -29,6 +29,30 @@
     <div id="scoreContainer" style="margin-top: 10px; text-align: center; min-height: 400px;"></div>
   </section>
 
+  <!-- Modo Profesor (Etapa 6) -->
+  <section id="teacherModeSection">
+    <h3>👨‍🏫 Modo profesor</h3>
+    <p class="hint">Configura BPM, offset y secciones para compartir con tus alumnos.</p>
+    <label for="teacherBpm">BPM:</label>
+    <input type="number" id="teacherBpm" min="20" max="300" placeholder="120" />
+    
+    <label for="teacherOffset">Offset (segundos):</label>
+    <input type="number" id="teacherOffset" step="0.1" placeholder="0" />
+    
+    <label for="structureMarks">Marcas de estructura (opcional):</label>
+    <p class="hint">Ej: "1:Intro,4:Verso,8:Estribillo" (compás:nombre)</p>
+    <input type="text" id="structureMarks" placeholder="1:Intro,4:Verso" style="width: 100%;" />
+    
+    <label>Rango de loop:</label>
+    <div style="display: flex; gap: 10px;">
+      <input type="number" id="teacherLoopFrom" min="1" placeholder="Desde" />
+      <input type="number" id="teacherLoopTo" min="1" placeholder="Hasta" />
+    </div>
+    
+    <button id="generateLink">Generar enlace para compartir</button>
+    <p id="shareLink" style="word-break: break-all; margin-top: 10px; display: none;"></p>
+  </section>
+
   <!-- Offset Display -->
   <section>
     <p id="offsetStatus">Desfase actual: 0s (ajustado automáticamente o manual)</p>
@@ -108,6 +132,9 @@
     <p class="hint">• <strong>Solo forma</strong>: oculta la partitura, útil para memorizar.  
        • <strong>Solo mirar</strong>: avanza sin audio, ideal para estudiar el ritmo antes de tocar.</p>
   </section>
+
+  <!-- Marcas de estructura (Etapa 6) -->
+  <div id="structureBar" style="display: none; position: fixed; top: 50px; left: 0; right: 0; background: #333; color: white; padding: 5px; text-align: center; z-index: 999;"></div>
 
   <!-- Indicador fijo de compás actual -->
   <div id="currentMeasureIndicator" style="display: none;">
