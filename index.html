@@ -50,7 +50,7 @@
       font-size: 1rem;
     }
     select {
-      background: #2c243a url('image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 10px center;
+      background: #2c243a url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 10px center;
       -webkit-appearance: none;
       -moz-appearance: none;
       appearance: none;
@@ -238,15 +238,14 @@
     const USER_COUNT_KEY = 'musicApp_userCount';
     const DOWNLOAD_COUNT_KEY = 'musicApp_downloadCount';
 
-    // === ✅ CORRECCIÓN CLAVE: loop desactivado por defecto ===
     let currentAudioFile = null;
     let currentScoreFile = null;
     let currentInstrument = '';
     let currentOffset = 0;
     let bpm = 120;
     let measureDuration = 60 / bpm;
-    let loopFrom = null; // ❌ null = no loop
-    let loopTo = null;   // ❌ null = no loop
+    let loopFrom = null;
+    let loopTo = null;
     let syncInterval = null;
 
     const audioFileInput = document.getElementById('audioFile');
@@ -286,7 +285,8 @@
         try {
           const arrayBuffer = await file.arrayBuffer();
           const typedarray = new Uint8Array(arrayBuffer);
-          const pdf = await pdfjsLib.getDocument({ typedarray }).promise;
+          // ✅ CORRECCIÓN: quitar llaves alrededor de typedarray
+          const pdf = await pdfjsLib.getDocument(typedarray).promise;
           const page = await pdf.getPage(1);
           const scale = 1.5;
           const viewport = page.getViewport({ scale });
@@ -298,7 +298,8 @@
           const context = canvas.getContext('2d');
           await page.render({ canvasContext: context, viewport }).promise;
         } catch (e) {
-          scoreContainer.innerHTML = '<p style="color:#ff6b6b;">⚠️ Error al cargar PDF. Usa una imagen.</p>';
+          console.error('Error al cargar PDF:', e);
+          scoreContainer.innerHTML = '<p style="color:#ff6b6b;">⚠️ No se pudo cargar el PDF. Prueba con una imagen (JPG/PNG).</p>';
         }
       } else if (file.type.startsWith('image/')) {
         const url = URL.createObjectURL(file);
@@ -312,7 +313,6 @@
       }
     }
 
-    // === ✅ FUNCIÓN DE SINCRONIZACIÓN CORREGIDA ===
     function startSync() {
       currentMeasureIndicator.style.display = 'block';
       measureDuration = 60 / bpm;
@@ -324,7 +324,6 @@
         const currentMeasure = syncTime >= 0 ? Math.floor(syncTime / measureDuration) + 1 : 0;
         measureNumberEl.textContent = currentMeasure;
         
-        // ✅ SOLO hacer loop si el usuario lo ha activado
         if (loopFrom !== null && loopTo !== null && currentMeasure > loopTo) {
           const loopStartTime = (loopFrom - 1) * measureDuration;
           audioPlayer.currentTime = loopStartTime - currentOffset;
@@ -343,7 +342,15 @@
       startSync();
     });
 
-    // === Activar loop SOLO al hacer clic en el botón ===
+    document.getElementById('applyOffset').addEventListener('click', () => {
+      currentOffset = parseFloat(document.getElementById('manualOffset').value) || 0;
+    });
+
+    document.getElementById('bpmInput').addEventListener('change', () => {
+      bpm = parseInt(document.getElementById('bpmInput').value) || 120;
+      measureDuration = 60 / bpm;
+    });
+
     document.getElementById('setLoop').addEventListener('click', () => {
       const from = parseInt(document.getElementById('loopFrom').value);
       const to = parseInt(document.getElementById('loopTo').value);
@@ -353,7 +360,6 @@
       }
     });
 
-    // Resto del código (contadores, admin, etc.) igual...
     function displayStats() {
       document.getElementById('userCount').textContent = localStorage.getItem(USER_COUNT_KEY) || '0';
       document.getElementById('downloadCount').textContent = localStorage.getItem(DOWNLOAD_COUNT_KEY) || '0';
