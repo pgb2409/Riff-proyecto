@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Pantalla de inicio -->
+  <!-- Pantalla de bienvenida -->
   <div id="welcomeScreen" class="screen">
     <div class="header">
       <div class="logo">
@@ -18,23 +18,38 @@
     <div class="content">
       <h1>Domina tu <span>instrumento</span></h1>
       <p>Sincronización de audio y partituras en tiempo real con resaltado inteligente.</p>
-      <div class="progress">
-        <div class="dot active"></div>
-        <div class="dot"></div>
-        <div class="dot"></div>
+      
+      <!-- Formulario de registro -->
+      <div id="registerForm">
+        <h3>Crear cuenta</h3>
+        <input type="text" id="regName" placeholder="Nombre completo" />
+        <input type="email" id="regEmail" placeholder="Correo electrónico" />
+        <button id="registerBtn" class="btn-primary">Crear cuenta</button>
+        <p class="switch-form">¿Ya tienes cuenta? <a id="showLogin">Inicia sesión</a></p>
       </div>
-      <button id="startBtn" class="btn-primary">▶️ Comenzar Ahora</button>
-      <p class="login-link">¿Ya tienes cuenta? <a id="loginLink">Inicia Sesión</a></p>
+
+      <!-- Formulario de login (oculto por defecto) -->
+      <div id="loginForm" style="display: none;">
+        <h3>Iniciar sesión</h3>
+        <input type="email" id="loginEmail" placeholder="Correo electrónico" />
+        <button id="loginBtn" class="btn-primary">Entrar</button>
+        <p class="switch-form">¿Eres nuevo? <a id="showRegister">Regístrate</a></p>
+      </div>
+
+      <div class="footer-links">
+        <p>Al usar esta app, aceptas que tus datos se guarden localmente en tu dispositivo.</p>
+      </div>
     </div>
   </div>
 
-  <!-- App principal (oculta al inicio) -->
+  <!-- App principal -->
   <div id="appContainer" class="screen" style="display: none;">
     <div class="app-header">
-      <button id="backToWelcome" class="btn-back">← Volver</button>
-      <h2>🎵 App para Estudiantes de Música</h2>
+      <button id="backToWelcome" class="btn-back">← Salir</button>
+      <h2>🎵 Hola, <span id="userNameDisplay">Usuario</span></h2>
     </div>
 
+    <!-- ... (todo el contenido de la app principal sigue igual) ... -->
     <!-- Audio Upload -->
     <section class="upload-section">
       <label for="audioFile">Sube tu audio (MP3 o MP4):</label>
@@ -183,42 +198,138 @@
     <div id="structureBar" style="display: none; position: fixed; top: 50px; left: 0; right: 0; background: #333; color: white; padding: 5px; text-align: center; z-index: 999;"></div>
     <div id="currentMeasureIndicator" style="display: none;">Compás actual: <span id="currentMeasureNumber">0</span></div>
 
-    <!-- Botón de descarga offline -->
-    <div class="footer-actions">
-      <button id="downloadOffline" class="btn-secondary">📥 Descargar versión offline</button>
-    </div>
+    <!-- PDF.js -->
+    <script src="pdfjs/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdfjs/pdf.worker.min.js';</script>
+
+    <!-- Librerías para ZIP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <script src="script.js"></script>
   </div>
 
-  <!-- Cargar PDF.js -->
-  <script src="pdfjs/pdf.min.js"></script>
-  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdfjs/pdf.worker.min.js';</script>
-
-  <!-- Librerías para ZIP -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-
-  <script src="script.js"></script>
-
-  <!-- Script para manejar pantallas -->
+  <!-- Script para manejar login/registro -->
   <script>
-    const welcomeScreen = document.getElementById('welcomeScreen');
-    const appContainer = document.getElementById('appContainer');
-    const startBtn = document.getElementById('startBtn');
-    const backToWelcome = document.getElementById('backToWelcome');
-    const loginLink = document.getElementById('loginLink');
+    // === Gestión de usuarios (localStorage) ===
+    const usersKey = 'musicApp_users';
+    const currentUserKey = 'musicApp_currentUser';
 
-    startBtn.addEventListener('click', () => {
-      welcomeScreen.style.display = 'none';
-      appContainer.style.display = 'block';
-    });
+    function saveUser(name, email) {
+      let users = JSON.parse(localStorage.getItem(usersKey) || '[]');
+      const exists = users.some(u => u.email === email);
+      if (!exists) {
+        users.push({ name, email });
+        localStorage.setItem(usersKey, JSON.stringify(users));
+      }
+      localStorage.setItem(currentUserKey, email);
+      return { name, email };
+    }
 
-    backToWelcome.addEventListener('click', () => {
-      appContainer.style.display = 'none';
-      welcomeScreen.style.display = 'flex';
-    });
+    function login(email) {
+      const users = JSON.parse(localStorage.getItem(usersKey) || '[]');
+      const user = users.find(u => u.email === email);
+      if (user) {
+        localStorage.setItem(currentUserKey, email);
+        return user;
+      }
+      return null;
+    }
 
-    loginLink.addEventListener('click', () => {
-      alert('Funcionalidad de login no implementada aún. Próximamente.');
+    function getCurrentUser() {
+      const email = localStorage.getItem(currentUserKey);
+      if (!email) return null;
+      const users = JSON.parse(localStorage.getItem(usersKey) || '[]');
+      return users.find(u => u.email === email);
+    }
+
+    function logout() {
+      localStorage.removeItem(currentUserKey);
+    }
+
+    // === Manejo de formularios ===
+    document.addEventListener('DOMContentLoaded', () => {
+      const registerForm = document.getElementById('registerForm');
+      const loginForm = document.getElementById('loginForm');
+      const showLogin = document.getElementById('showLogin');
+      const showRegister = document.getElementById('showRegister');
+      const registerBtn = document.getElementById('registerBtn');
+      const loginBtn = document.getElementById('loginBtn');
+      const regName = document.getElementById('regName');
+      const regEmail = document.getElementById('regEmail');
+      const loginEmail = document.getElementById('loginEmail');
+      const userNameDisplay = document.getElementById('userNameDisplay');
+      const welcomeScreen = document.getElementById('welcomeScreen');
+      const appContainer = document.getElementById('appContainer');
+      const backToWelcome = document.getElementById('backToWelcome');
+
+      // Mostrar/Ocultar formularios
+      showLogin.addEventListener('click', (e) => {
+        e.preventDefault();
+        registerForm.style.display = 'none';
+        loginForm.style.display = 'block';
+      });
+
+      showRegister.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+      });
+
+      // Registro
+      registerBtn.addEventListener('click', () => {
+        const name = regName.value.trim();
+        const email = regEmail.value.trim();
+        if (!name || !email) {
+          alert('Por favor, completa todos los campos.');
+          return;
+        }
+        if (!email.includes('@')) {
+          alert('Por favor, ingresa un correo válido.');
+          return;
+        }
+        const user = saveUser(name, email);
+        userNameDisplay.textContent = user.name;
+        welcomeScreen.style.display = 'none';
+        appContainer.style.display = 'block';
+      });
+
+      // Login
+      loginBtn.addEventListener('click', () => {
+        const email = loginEmail.value.trim();
+        if (!email) {
+          alert('Por favor, ingresa tu correo.');
+          return;
+        }
+        const user = login(email);
+        if (user) {
+          userNameDisplay.textContent = user.name;
+          welcomeScreen.style.display = 'none';
+          appContainer.style.display = 'block';
+        } else {
+          alert('Usuario no encontrado. Regístrate primero.');
+        }
+      });
+
+      // Volver a inicio (cerrar sesión)
+      backToWelcome.addEventListener('click', () => {
+        logout();
+        appContainer.style.display = 'none';
+        welcomeScreen.style.display = 'flex';
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+        regName.value = '';
+        regEmail.value = '';
+        loginEmail.value = '';
+      });
+
+      // Verificar si ya hay usuario
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        userNameDisplay.textContent = currentUser.name;
+        welcomeScreen.style.display = 'none';
+        appContainer.style.display = 'block';
+      }
     });
   </script>
 </body>
