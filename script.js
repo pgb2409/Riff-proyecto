@@ -889,4 +889,15 @@ exportPracticeBtn.addEventListener('click', async () => {
   saveAs(content, 'practica-musica-offline.zip');
   
   alert('¡Listo! Abre el ZIP y haz doble clic en "index.html" para practicar sin internet.');
+  
+  // Incrementar contador de descargas
+  const DOWNLOAD_COUNT_KEY = 'musicApp_downloadCount';
+  const downloadCount = parseInt(localStorage.getItem(DOWNLOAD_COUNT) || '0') + 1;
+  localStorage.setItem(DOWNLOAD_COUNT_KEY, downloadCount.toString());
+  
+  // Actualizar vista
+  const downloadCountEl = document.getElementById('downloadCount');
+  if (downloadCountEl) {
+    downloadCountEl.textContent = downloadCount;
+  }
 });
