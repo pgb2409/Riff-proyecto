@@ -146,3 +146,8 @@ button:disabled {
   margin: 5px 0 10px 0;
   line-height: 1.4;
 }
+
+/* Etapa 6: Modo profesor */
+#teacherModeSection {
+  margin-top: 20px;
+}
