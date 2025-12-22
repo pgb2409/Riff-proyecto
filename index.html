@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Music Student MVP</title>
   <link rel="stylesheet" href="style.css" />
-  <link rel="manifest" href="/manifest.json" />
 </head>
 <body>
   <h1>🎵 App para Estudiantes de Música (MVP)</h1>
@@ -147,28 +146,25 @@
     <p id="bpmDetectionStatus" style="font-size: 0.9em; color: #555;"></p>
   </section>
 
-  <!-- Marcas de estructura (Etapa 6) -->
+  <!-- ✅ NUEVO: Botón de descarga -->
+  <section id="exportSection">
+    <h3>💾 Descargar práctica para usar sin internet</h3>
+    <p class="hint">Una vez tengas todo listo, descarga un archivo ZIP que podrás usar sin conexión. Incluye tu audio, partitura y configuración.</p>
+    <button id="exportPractice" disabled>Descargar práctica sincronizada</button>
+  </section>
+
+  <!-- Elementos fijos -->
   <div id="structureBar" style="display: none; position: fixed; top: 50px; left: 0; right: 0; background: #333; color: white; padding: 5px; text-align: center; z-index: 999;"></div>
+  <div id="currentMeasureIndicator" style="display: none;">Compás actual: <span id="currentMeasureNumber">0</span></div>
 
-  <!-- Indicador fijo de compás actual -->
-  <div id="currentMeasureIndicator" style="display: none;">
-    Compás actual: <span id="currentMeasureNumber">0</span>
-  </div>
-
-  <!-- Cargar PDF.js -->
+  <!-- PDF.js -->
   <script src="pdfjs/pdf.min.js"></script>
-  <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdfjs/pdf.worker.min.js';
-  </script>
-  <script src="script.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdfjs/pdf.worker.min.js';</script>
 
-  <!-- ✅ Activar soporte offline (PWA) -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(console.warn);
-      });
-    }
-  </script>
+  <!-- Librerías para ZIP (solo se usan al exportar) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <script src="script.js"></script>
 </body>
 </html>
