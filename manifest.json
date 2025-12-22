@@ -1,0 +1,9 @@
+{
+  "name": "Music Student MVP",
+  "short_name": "MusicApp",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9f9f9",
+  "theme_color": "#4CAF50",
+  "icons": []
+}
