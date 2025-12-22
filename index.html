@@ -2,38 +2,39 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name=" viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Domina tu instrumento</title>
   <style>
+    /* --- Diseño oscuro profesional restaurado --- */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f8f9fa;
-      color: #333;
+      background: #0f0c1a;
+      color: #f0f0f0;
       padding: 20px;
     }
     .container {
       max-width: 800px;
       margin: 0 auto;
-      background: white;
+      background: #1a132a;
       border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
       padding: 25px;
     }
     h1 {
       text-align: center;
       margin-bottom: 20px;
-      color: #2c3e50;
+      color: #5e4aff;
     }
     .section {
       margin: 25px 0;
       padding: 20px;
-      background: #fafafa;
+      background: #251e35;
       border-radius: 10px;
     }
     .section h2 {
       margin-bottom: 15px;
-      color: #3498db;
+      color: #5e4aff;
     }
     input[type="file"],
     select,
@@ -42,36 +43,47 @@
       width: 100%;
       padding: 12px;
       margin: 8px 0;
-      border: 1px solid #ddd;
+      border: 1px solid #444;
       border-radius: 6px;
+      background: #2c243a;
+      color: white;
       font-size: 1rem;
     }
     select {
-      background: white;
+      background: #2c243a url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 10px center;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      padding-right: 30px;
     }
     button {
-      background: #3498db;
+      background: linear-gradient(135deg, #5e4aff 0%, #3b2cff 100%);
       color: white;
       font-weight: bold;
       cursor: pointer;
-      transition: background 0.3s;
+      transition: all 0.3s ease;
+      border: none;
     }
     button:hover {
-      background: #2980b9;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(94, 74, 255, 0.4);
     }
     button:disabled {
-      background: #bdc3c7;
+      background: #555;
       cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
     }
     #scoreContainer {
       margin-top: 15px;
       text-align: center;
       min-height: 300px;
-      border: 1px dashed #ccc;
+      border: 1px dashed #555;
       border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
+      color: #aaa;
     }
     #scoreContainer img,
     #scoreContainer canvas {
@@ -83,18 +95,18 @@
       position: fixed;
       top: 20px;
       right: 20px;
-      background: #e74c3c;
+      background: rgba(231, 76, 60, 0.9);
       color: white;
       padding: 8px 16px;
       border-radius: 20px;
       font-weight: bold;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
       z-index: 1000;
     }
     .stats {
       display: flex;
       justify-content: space-around;
-      background: #ecf0f1;
+      background: rgba(94, 74, 255, 0.1);
       padding: 15px;
       border-radius: 8px;
       margin: 20px 0;
@@ -105,24 +117,28 @@
     .stat-number {
       font-size: 1.8rem;
       font-weight: bold;
-      color: #3498db;
+      color: #5e4aff;
     }
     .hint {
       font-size: 0.9rem;
-      color: #7f8c8d;
+      color: #aaa;
       margin: 10px 0;
       line-height: 1.5;
     }
     .admin-panel {
-      background: #fef9e7;
+      background: rgba(243, 156, 18, 0.1);
       border-left: 4px solid #f39c12;
       padding: 15px;
       margin-top: 20px;
     }
+    details > summary {
+      cursor: pointer;
+      color: #5e4aff;
+      font-weight: bold;
+    }
     @media (max-width: 600px) {
       .container { margin: 10px; padding: 15px; }
       .stats { flex-direction: column; gap: 10px; }
-      input, select, button { font-size: 0.9rem; padding: 10px; }
     }
   </style>
 </head>
@@ -177,13 +193,13 @@
       <div class="section">
         <h2>2. ¡Practica!</h2>
         <p class="hint">La partitura se resaltará en tiempo real mientras suena el audio.</p>
-        <audio id="audioPlayer" controls style="width: 100%; margin: 10px 0;"></audio>
+        <audio id="audioPlayer" controls style="width: 100%; margin: 10px 0; background: #2c243a; padding: 10px; border-radius: 6px;"></audio>
         <div id="scoreContainer">Sube tu partitura para verla aquí</div>
       </div>
 
       <!-- Controles avanzados (colapsables) -->
       <details class="section">
-        <summary style="cursor: pointer; font-weight: bold; color: #3498db;">⚙️ Ajustes avanzados (solo si es necesario)</summary>
+        <summary>⚙️ Ajustes avanzados (solo si es necesario)</summary>
         
         <label>BPM (tempo):</label>
         <input type="number" id="bpmInput" value="120" min="20" max="300" />
@@ -295,7 +311,8 @@
           const context = canvas.getContext('2d');
           await page.render({ canvasContext: context, viewport }).promise;
         } catch (e) {
-          scoreContainer.innerHTML = '<p>⚠️ Error al cargar el PDF.</p>';
+          console.error('Error PDF:', e);
+          scoreContainer.innerHTML = '<p style="color:#ff6b6b;">⚠️ No se pudo cargar el PDF. Prueba con una imagen.</p>';
         }
       } else if (file.type.startsWith('image/')) {
         const url = URL.createObjectURL(file);
@@ -305,11 +322,11 @@
         scoreContainer.innerHTML = '';
         scoreContainer.appendChild(img);
       } else {
-        scoreContainer.innerHTML = '<p>⚠️ Formato no soportado.</p>';
+        scoreContainer.innerHTML = '<p style="color:#ff6b6b;">⚠️ Formato no soportado.</p>';
       }
     }
 
-    // === Sincronización automática ===
+    // === Sincronización automática (CORREGIDA) ===
     function startSync() {
       currentMeasureIndicator.style.display = 'block';
       measureDuration = 60 / bpm;
@@ -321,8 +338,8 @@
         const currentMeasure = syncTime >= 0 ? Math.floor(syncTime / measureDuration) + 1 : 0;
         measureNumberEl.textContent = currentMeasure;
         
-        // Loop
-        if (currentMeasure > loopTo) {
+        // ✅ CORRECCIÓN: solo hacer loop si está activado (from < to)
+        if (loopFrom < loopTo && currentMeasure > loopTo) {
           const loopStartTime = (loopFrom - 1) * measureDuration;
           audioPlayer.currentTime = loopStartTime - currentOffset;
         }
