@@ -151,3 +151,19 @@ button:disabled {
 #teacherModeSection {
   margin-top: 20px;
 }
+
+/* Etapa 7: Mejoras avanzadas */
+#advancedFeaturesSection {
+  margin-top: 20px;
+}
+
+#playbackRate {
+  width: 80%;
+  margin-top: 5px;
+}
+
+#playbackRateValue {
+  display: inline-block;
+  width: 30px;
+  text-align: center;
+}
