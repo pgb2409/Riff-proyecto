@@ -1029,6 +1029,13 @@
     document.addEventListener('DOMContentLoaded', () => {
       displayStats();
 
+      // ✅ CORRECCIÓN: activar el botón "Inicia sesión"
+      document.getElementById('showLogin').addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('loginForm').style.display = 'block';
+      });
+
       // Login
       document.getElementById('loginBtn').addEventListener('click', () => {
         const email = document.getElementById('loginEmail').value.trim();
@@ -1036,7 +1043,6 @@
         const user = login(email, password);
         if (user) {
           if (user.admin) {
-            // ✅ CORREGIDO: vuelve a la pantalla de inicio
             alert('Acceso de administrador no compatible con el flujo guiado.\nUsa la versión anterior para administrar.');
             document.getElementById('appContainer').style.display = 'none';
             document.getElementById('welcomeScreen').style.display = 'flex';
@@ -1091,6 +1097,13 @@
         logout();
         document.getElementById('appContainer').style.display = 'none';
         document.getElementById('welcomeScreen').style.display = 'flex';
+      });
+
+      // También activar "Regístrate" desde login
+      document.getElementById('showRegister').addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'block';
       });
     });
   </script>
