@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Domina tu instrumento</title>
   <style>
-    /* ... (todo el CSS igual que antes) ... */
     * {
       margin: 0;
       padding: 0;
@@ -822,7 +821,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-  <!-- Script -->
+  <!-- Script completo -->
   <script>
     // === Claves globales ===
     const usersKey = 'musicApp_users';
@@ -936,12 +935,16 @@
       document.getElementById('measureInfo').textContent = `Duración de compás: ${measureDuration.toFixed(2)}s`;
     });
 
-    // === Login/Register/Admin (CORREGIDO) ===
+    // === Login/Register/Admin ===
     function login(email, password) {
+      // Admin: acceso inmediato
       if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
         localStorage.setItem(isAdminKey, 'true');
+        localStorage.removeItem(currentUserKey);
         return { name: 'Administrador', lastname: '', email, admin: true };
       }
+      
+      // Alumnos: deben estar registrados
       const users = JSON.parse(localStorage.getItem(usersKey) || '[]');
       const user = users.find(u => u.email === email && u.password === password);
       if (user) {
@@ -961,6 +964,7 @@
         const userCount = parseInt(localStorage.getItem(USER_COUNT_KEY) || '0') + 1;
         localStorage.setItem(USER_COUNT_KEY, userCount.toString());
       }
+      // ✅ Corrección: usar currentUserKey, no currentUser
       localStorage.setItem(currentUserKey, email);
       return { name, lastname, email };
     }
@@ -981,9 +985,45 @@
       }
     }
 
+    // === Restaurar sesión al cargar ===
+    function restoreSession() {
+      const isAdmin = localStorage.getItem(isAdminKey) === 'true';
+      const userEmail = localStorage.getItem(currentUserKey);
+
+      const welcomeScreen = document.getElementById('welcomeScreen');
+      const appContainer = document.getElementById('appContainer');
+      const userNameDisplay = document.getElementById('userNameDisplay');
+
+      if (isAdmin) {
+        // Admin
+        userNameDisplay.textContent = 'Administrador';
+        welcomeScreen.style.display = 'none';
+        appContainer.style.display = 'flex';
+        setTimeout(() => {
+          alert('Acceso de administrador no compatible con el flujo guiado.\nUsa la versión anterior para administrar.');
+          appContainer.style.display = 'none';
+          welcomeScreen.style.display = 'flex';
+        }, 100);
+      } else if (userEmail) {
+        // Alumno registrado
+        const users = JSON.parse(localStorage.getItem(usersKey) || '[]');
+        const user = users.find(u => u.email === userEmail);
+        if (user) {
+          userNameDisplay.textContent = `${user.name} ${user.lastname}`;
+          welcomeScreen.style.display = 'none';
+          appContainer.style.display = 'flex';
+          return;
+        }
+      }
+      // Sin sesión válida
+      welcomeScreen.style.display = 'flex';
+      appContainer.style.display = 'none';
+    }
+
     // === Inicialización ===
     document.addEventListener('DOMContentLoaded', () => {
       displayStats();
+      restoreSession();
 
       // Login
       document.getElementById('showLogin').addEventListener('click', (e) => {
@@ -998,12 +1038,16 @@
         const user = login(email, password);
         if (user) {
           if (user.admin) {
-            alert('Acceso de administrador no compatible con el flujo guiado.\nUsa la versión anterior para administrar.');
-            document.getElementById('appContainer').style.display = 'none';
-            document.getElementById('welcomeScreen').style.display = 'flex';
-            document.getElementById('loginEmail').value = '';
-            document.getElementById('loginPassword').value = '';
-            return;
+            document.getElementById('userNameDisplay').textContent = 'Administrador';
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'flex';
+            setTimeout(() => {
+              alert('Acceso de administrador no compatible con el flujo guiado.\nUsa la versión anterior para administrar.');
+              document.getElementById('appContainer').style.display = 'none';
+              document.getElementById('welcomeScreen').style.display = 'flex';
+              document.getElementById('loginEmail').value = '';
+              document.getElementById('loginPassword').value = '';
+            }, 100);
           } else {
             document.getElementById('userNameDisplay').textContent = `${user.name} ${user.lastname}`;
             document.getElementById('welcomeScreen').style.display = 'none';
@@ -1016,7 +1060,6 @@
 
       // Registro
       document.getElementById('registerBtn').addEventListener('click', () => {
-        // ... mismo código ...
         const name = document.getElementById('regName').value.trim();
         const lastname = document.getElementById('regLastname').value.trim();
         const email = document.getElementById('regEmail').value.trim();
