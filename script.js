@@ -1,5 +1,5 @@
 // Elementos del DOM
-const audioFileInput = document.getElementById('audioFile');
+const audioFile input = document.getElementById('audioFile');
 const audioPlayer = document.getElementById('audioPlayer');
 const scoreFileInput = document.getElementById('scoreFile');
 const scoreContainer = document.getElementById('scoreContainer');
@@ -64,7 +64,7 @@ scoreFileInput.addEventListener('change', async function (e) {
 
   if (file.type === 'application/pdf') {
     try {
-      // ✅ Corrección: usar arrayBuffer en lugar de URL.createObjectURL
+      // ✅ Corrección definitiva: usar 'data' como clave
       const arrayBuffer = await file.arrayBuffer();
       const typedarray = new Uint8Array(arrayBuffer);
       const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
