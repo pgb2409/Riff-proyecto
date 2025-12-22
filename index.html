@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Music Student MVP</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>🎵 App para Estudiantes de Música (MVP)</h1>
+
+  <!-- Audio Upload -->
+  <section>
+    <label for="audioFile">Sube tu audio (MP3 o MP4):</label>
+    <input type="file" id="audioFile" accept="audio/mp3,audio/mpeg,video/mp4" />
+    <br />
+    <audio id="audioPlayer" controls style="width: 100%; margin-top: 10px;"></audio>
+  </section>
+
+  <!-- Score Upload -->
+  <section>
+    <label for="scoreFile">Sube tu partitura (PDF, JPG o PNG):</label>
+    <input type="file" id="scoreFile" accept=".pdf,.jpg,.jpeg,.png" />
+    <div id="scoreContainer" style="margin-top: 10px; text-align: center;"></div>
+  </section>
+
+  <!-- Offset control -->
+  <section>
+    <label for="offsetInput">Desfase (offset en segundos):</label>
+    <input type="number" id="offsetInput" step="0.1" value="0" />
+    <button id="applyOffset">Aplicar Offset</button>
+    <p id="offsetStatus">Desfase actual: 0s</p>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+</html>
