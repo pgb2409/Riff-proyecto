@@ -15,23 +15,31 @@
     <input type="file" id="audioFile" accept="audio/mp3,audio/mpeg,video/mp4" />
     <br />
     <audio id="audioPlayer" controls style="width: 100%; margin-top: 10px;"></audio>
+    <br />
+    <button id="markFirstNote" disabled>La primera nota entra aquí</button>
   </section>
 
   <!-- Score Upload -->
   <section>
     <label for="scoreFile">Sube tu partitura (PDF, JPG o PNG):</label>
     <input type="file" id="scoreFile" accept=".pdf,.jpg,.jpeg,.png" />
-    <div id="scoreContainer" style="margin-top: 10px; text-align: center;"></div>
+    <div id="scoreContainer" style="margin-top: 10px; text-align: center; min-height: 400px;"></div>
   </section>
 
-  <!-- Offset control -->
+  <!-- Offset Display -->
   <section>
-    <label for="offsetInput">Desfase (offset en segundos):</label>
-    <input type="number" id="offsetInput" step="0.1" value="0" />
-    <button id="applyOffset">Aplicar Offset</button>
-    <p id="offsetStatus">Desfase actual: 0s</p>
+    <p id="offsetStatus">Desfase actual: 0s (ajustado automáticamente o manual)</p>
+    <label for="manualOffset">Ajuste manual (segundos):</label>
+    <input type="number" id="manualOffset" step="0.1" value="0" />
+    <button id="applyManualOffset">Aplicar ajuste manual</button>
   </section>
 
+  <!-- Cargar PDF.js -->
+  <script src="pdfjs/pdf.min.js"></script>
+  <script>
+    // Configurar worker de PDF.js
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdfjs/pdf.worker.min.js';
+  </script>
   <script src="script.js"></script>
 </body>
 </html>
