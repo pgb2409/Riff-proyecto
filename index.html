@@ -12,16 +12,19 @@
   <!-- Audio Upload -->
   <section>
     <label for="audioFile">Sube tu audio (MP3 o MP4):</label>
+    <p class="hint">Selecciona la grabación de la pieza que vas a practicar.</p>
     <input type="file" id="audioFile" accept="audio/mp3,audio/mpeg,video/mp4" />
     <br />
     <audio id="audioPlayer" controls style="width: 100%; margin-top: 10px;"></audio>
     <br />
     <button id="markFirstNote" disabled>La primera nota entra aquí</button>
+    <p class="hint">Reproduce el audio y haz clic en este botón exactamente cuando suene la primera nota. Esto sincroniza la partitura con el audio.</p>
   </section>
 
   <!-- Score Upload -->
   <section>
     <label for="scoreFile">Sube tu partitura (PDF, JPG o PNG):</label>
+    <p class="hint">Sube una foto, escaneo o PDF de tu partitura, tablatura o hoja de acordes.</p>
     <input type="file" id="scoreFile" accept=".pdf,.jpg,.jpeg,.png" />
     <div id="scoreContainer" style="margin-top: 10px; text-align: center; min-height: 400px;"></div>
   </section>
@@ -30,6 +33,7 @@
   <section>
     <p id="offsetStatus">Desfase actual: 0s (ajustado automáticamente o manual)</p>
     <label for="manualOffset">Ajuste manual (segundos):</label>
+    <p class="hint">Si la partitura va adelantada o atrasada, ajusta aquí en pequeños pasos (ej. +0.2 o -0.3).</p>
     <input type="number" id="manualOffset" step="0.1" value="0" />
     <button id="applyManualOffset">Aplicar ajuste manual</button>
   </section>
@@ -37,6 +41,7 @@
   <!-- Etapa 2: Sincronización rítmica -->
   <section id="rhythmSection">
     <label for="bpmInput">BPM (beats per minute):</label>
+    <p class="hint">Escribe el tempo de la pieza (ej. 120). La app usará esto para marcar los compases.</p>
     <input type="number" id="bpmInput" min="20" max="300" placeholder="Ej. 120" />
     <button id="startSync">Iniciar sincronización rítmica</button>
     <button id="stopSync">Detener</button>
@@ -45,11 +50,13 @@
       <input type="checkbox" id="followMode" checked />
       Modo “seguir siempre” (no se detiene)
     </label>
+    <p class="hint">Si activas esta opción, el resaltado de compases seguirá avanzando aunque te pierdas.</p>
   </section>
 
   <!-- Etapa 3: Controles en vivo + loop -->
   <section id="liveControlsSection">
     <h3>🎛️ Controles en vivo (ajuste fino)</h3>
+    <p class="hint">Ajusta la sincronización sobre la marcha mientras practicas.</p>
     <div class="live-controls-row">
       <button id="offsetMinus">– 0.2s</button>
       <button id="offsetPlus">+ 0.2s</button>
@@ -57,6 +64,7 @@
     <p>Offset aplicado: <span id="liveOffsetDisplay">0s</span></p>
 
     <h3>⏭️ Saltos por compases</h3>
+    <p class="hint">Avanza o retrocede compases para repetir secciones difíciles.</p>
     <div class="live-controls-row">
       <button id="jumpBack2">◄◄ 2</button>
       <button id="jumpBack1">◄ 1</button>
@@ -65,6 +73,7 @@
     </div>
 
     <h3>🔁 Loop por sección</h3>
+    <p class="hint">Repite una sección automáticamente (ej. compases 5 a 8).</p>
     <label>
       Desde compás:
       <input type="number" id="loopFrom" min="1" value="1" />
@@ -82,6 +91,7 @@
   <!-- Etapa 4: Feedback visual rítmico -->
   <section id="visualFeedbackSection">
     <h3>👁️ Feedback visual rítmico</h3>
+    <p class="hint">Prepárate antes de tocar: verás un pulso visual que marca el ritmo durante un compás.</p>
     <button id="startCountdown">Iniciar cuenta atrás (1 compás)</button>
     <div id="pulseContainer">
       <div id="pulseCircle"></div>
@@ -91,9 +101,12 @@
   <!-- Etapa 5: Modos de visualización -->
   <section id="viewModesSection">
     <h3>👁️ Modos de visualización</h3>
+    <p class="hint">Elige cómo quieres ver la práctica.</p>
     <button id="toggleFormMode">Modo “solo forma”</button>
     <button id="toggleLookMode">Modo “solo mirar”</button>
     <p id="modeStatus">Modo actual: Normal</p>
+    <p class="hint">• <strong>Solo forma</strong>: oculta la partitura, útil para memorizar.  
+       • <strong>Solo mirar</strong>: avanza sin audio, ideal para estudiar el ritmo antes de tocar.</p>
   </section>
 
   <!-- Indicador fijo de compás actual -->
