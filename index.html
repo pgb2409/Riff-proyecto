@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Domina tu instrumento</title>
   <style>
-    /* --- Copia tu style.css completo aquí --- */
+    /* --- Tu style.css completo aquí (sin cambios) --- */
     * {
       margin: 0;
       padding: 0;
@@ -620,6 +620,24 @@
       background: #4CAF50;
       color: white;
     }
+
+    /* Instrucciones en pasos */
+    .instructions {
+      background: rgba(94, 74, 255, 0.1);
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+    }
+
+    .instructions ul {
+      padding-left: 20px;
+      margin: 10px 0;
+    }
+
+    .instructions li {
+      margin: 8px 0;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
@@ -697,11 +715,17 @@
       <!-- Paso 1: Audio -->
       <div id="step1" class="step active">
         <h3> Paso 1: Sube tu audio </h3>
-        <p class="hint">Selecciona la grabación de la pieza que vas a practicar (MP3 o MP4).</p>
+        <div class="instructions">
+          <p><strong>¿Qué debes hacer?</strong></p>
+          <ul>
+            <li>Selecciona un archivo de audio en formato <strong>MP3 o MP4</strong>.</li>
+            <li>Debe ser la grabación de la pieza que vas a practicar.</li>
+          </ul>
+        </div>
         <input type="file" id="audioFile" accept="audio/mp3,audio/mpeg,video/mp4" />
         <audio id="audioPlayer" controls style="width: 100%; margin-top: 15px;"></audio>
         <div class="nav-buttons">
-          <div></div> <!-- espacio vacío -->
+          <div></div>
           <button id="next1" class="btn-next" disabled>Siguiente</button>
         </div>
       </div>
@@ -709,7 +733,14 @@
       <!-- Paso 2: Partitura e instrumento -->
       <div id="step2" class="step">
         <h3> Paso 2: Elige tu instrumento y sube tu partitura </h3>
-        <p class="hint">Ej: partitura de batería, tablatura de guitarra, hoja de acordes, etc.</p>
+        <div class="instructions">
+          <p><strong>¿Qué debes hacer?</strong></p>
+          <ul>
+            <li>Selecciona <strong>tu instrumento</strong> de la lista (ej: Batería, Guitarra).</li>
+            <li>Sube la <strong>partitura correspondiente</strong> en PDF, JPG o PNG.</li>
+            <li>Puede ser una foto, escaneo o archivo digital.</li>
+          </ul>
+        </div>
         
         <label for="instrumentSelect">Tu instrumento:</label>
         <select id="instrumentSelect" class="instrument-select">
@@ -738,7 +769,14 @@
       <!-- Paso 3: Sincronización -->
       <div id="step3" class="step">
         <h3> Paso 3: Sincroniza audio y partitura </h3>
-        <p class="hint">Reproduce el audio y haz clic en el botón exactamente cuando suene la primera nota.</p>
+        <div class="instructions">
+          <p><strong>¿Qué debes hacer?</strong></p>
+          <ul>
+            <li><strong>Reproduce el audio</strong> desde el principio.</li>
+            <li>En el <strong>momento exacto</strong> en que suena la primera nota de tu instrumento, haz clic en el botón de abajo.</li>
+            <li>¡Eso es todo! La app se encargará de alinear la partitura con el audio.</li>
+          </ul>
+        </div>
         <button id="markFirstNote" class="btn-primary">La primera nota entra aquí</button>
         <p id="offsetStatus" style="margin: 15px 0;">Desfase: 0s</p>
         <div class="nav-buttons">
@@ -815,7 +853,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
-  <!-- Script completo -->
+  <!-- Script completo (sin cambios en lógica) -->
   <script>
     // === Claves globales ===
     const usersKey = 'musicApp_users';
@@ -932,7 +970,6 @@
     });
 
     // === Resto de funcionalidades (BPM, loop, etc.) ===
-    // (se mantienen igual, pero se activan solo en el paso 4)
     document.getElementById('startSync').addEventListener('click', () => {
       const value = parseFloat(document.getElementById('bpmInput').value);
       if (isNaN(value) || value <= 0) {
@@ -1000,7 +1037,6 @@
         const user = login(email, password);
         if (user) {
           if (user.admin) {
-            // Panel admin (no incluido aquí por simplicidad, pero se mantiene)
             alert('Acceso de administrador no compatible con el flujo guiado.\nUsa la versión anterior para administrar.');
           } else {
             document.getElementById('userNameDisplay').textContent = `${user.name} ${user.lastname}`;
@@ -1014,7 +1050,6 @@
 
       // Registro
       document.getElementById('registerBtn').addEventListener('click', () => {
-        // ... mismo código que antes ...
         const name = document.getElementById('regName').value.trim();
         const lastname = document.getElementById('regLastname').value.trim();
         const email = document.getElementById('regEmail').value.trim();
