@@ -34,6 +34,24 @@
     <button id="applyManualOffset">Aplicar ajuste manual</button>
   </section>
 
+  <!-- Etapa 2: Sincronización rítmica -->
+  <section id="rhythmSection">
+    <label for="bpmInput">BPM (beats per minute):</label>
+    <input type="number" id="bpmInput" min="20" max="300" placeholder="Ej. 120" />
+    <button id="startSync">Iniciar sincronización rítmica</button>
+    <button id="stopSync">Detener</button>
+    <p id="measureInfo">Duración de compás: -- segundos</p>
+    <label>
+      <input type="checkbox" id="followMode" checked />
+      Modo “seguir siempre” (no se detiene)
+    </label>
+  </section>
+
+  <!-- Indicador fijo de compás actual -->
+  <div id="currentMeasureIndicator" style="display: none;">
+    Compás actual: <span id="currentMeasureNumber">0</span>
+  </div>
+
   <!-- Cargar PDF.js -->
   <script src="pdfjs/pdf.min.js"></script>
   <script>
