@@ -127,3 +127,14 @@ button:disabled {
   opacity: 0.3;
   transition: opacity 0.1s;
 }
+
+/* Etapa 5: Modos de visualización */
+#viewModesSection {
+  margin-top: 20px;
+  text-align: center;
+}
+
+#modeStatus {
+  font-weight: bold;
+  margin-top: 10px;
+}
