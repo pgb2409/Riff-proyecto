@@ -64,7 +64,6 @@ scoreFileInput.addEventListener('change', async function (e) {
 
   if (file.type === 'application/pdf') {
     try {
-      // Intentar con PDF.js
       const arrayBuffer = await file.arrayBuffer();
       const typedarray = new Uint8Array(arrayBuffer);
       const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
@@ -82,8 +81,6 @@ scoreFileInput.addEventListener('change', async function (e) {
 
       await page.render({ canvasContext: context, viewport }).promise;
     } catch (err) {
-      // Si falla, usar fallback con <embed>
-      console.warn('PDF.js falló. Usando fallback con <embed>.', err);
       const url = URL.createObjectURL(file);
       const embed = document.createElement('embed');
       embed.src = url;
@@ -358,4 +355,47 @@ audioPlayer.addEventListener('timeupdate', () => {
       audioPlayer.currentTime = targetTime;
     }
   }
+});
+
+// === Etapa 4: Feedback visual rítmico (NUEVO) ===
+
+const startCountdownBtn = document.getElementById('startCountdown');
+const pulseCircle = document.getElementById('pulseCircle');
+
+let pulseInterval = null;
+let countdownActive = false;
+
+// Parpadear el círculo
+function pulse() {
+  pulseCircle.style.opacity = '1';
+  setTimeout(() => {
+    if (!countdownActive && !bpm) return;
+    pulseCircle.style.opacity = '0.3';
+  }, 150);
+}
+
+// Iniciar cuenta atrás de 1 compás
+startCountdownBtn.addEventListener('click', () => {
+  if (!bpm || bpm <= 0) {
+    alert('Primero ingresa un BPM válido.');
+    return;
+  }
+
+  if (pulseInterval) clearInterval(pulseInterval);
+
+  countdownActive = true;
+  const beatDuration = 60 / bpm; // en segundos
+  const beatsPerMeasure = 4; // asumimos 4/4
+  let beatCount = 0;
+
+  pulse(); // pulso inicial inmediato
+
+  pulseInterval = setInterval(() => {
+    beatCount++;
+    pulse();
+    if (beatCount >= beatsPerMeasure) {
+      clearInterval(pulseInterval);
+      countdownActive = false;
+    }
+  }, beatDuration * 1000);
 });
