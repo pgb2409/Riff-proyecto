@@ -55,7 +55,82 @@ applyManualOffsetBtn.addEventListener('click', function () {
   }
 });
 
-// === Manejo de partitura (Etapa 1) ===
+// === Manejo de partitura + instrumento ===
+const instrumentSelect = document.getElementById('instrumentSelect');
+const instrumentStatus = document.getElementById('instrumentStatus');
+
+// Guardar instrumento al cambiar
+instrumentSelect.addEventListener('change', () => {
+  const instrument = instrumentSelect.value;
+  if (instrument) {
+    const labels = {
+      bateria: 'Batería',
+      guitarra: 'Guitarra',
+      bajo: 'Bajo',
+      piano: 'Piano/Teclado',
+      voz: 'Voz',
+      saxo: 'Saxo',
+      trompeta: 'Trompeta',
+      violin: 'Violín',
+      flauta: 'Flauta',
+      otro: 'Otro'
+    };
+    instrumentStatus.textContent = `Practicando: ${labels[instrument]}`;
+    // Guardar en localStorage por audio
+    if (currentAudioFileName) {
+      localStorage.setItem(`instrument_${currentAudioFileName}`, instrument);
+    }
+  } else {
+    instrumentStatus.textContent = '';
+  }
+});
+
+// Cargar instrumento guardado al cambiar audio
+audioFileInput.addEventListener('change', function (e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  currentAudioFileName = file.name;
+  const url = URL.createObjectURL(file);
+  audioPlayer.src = url;
+  markFirstNoteBtn.disabled = false;
+
+  // Cargar offset guardado
+  const savedOffset = localStorage.getItem(`offset_${currentAudioFileName}`);
+  if (savedOffset) {
+    currentOffset = parseFloat(savedOffset);
+    manualOffsetInput.value = currentOffset;
+    offsetStatus.textContent = `Desfase actual: ${currentOffset.toFixed(1)}s (cargado de sesión anterior)`;
+  } else {
+    currentOffset = 0;
+    manualOffsetInput.value = 0;
+    offsetStatus.textContent = 'Desfase actual: 0s';
+  }
+
+  // Cargar instrumento guardado
+  const savedInstrument = localStorage.getItem(`instrument_${currentAudioFileName}`);
+  if (savedInstrument) {
+    instrumentSelect.value = savedInstrument;
+    const labels = {
+      bateria: 'Batería',
+      guitarra: 'Guitarra',
+      bajo: 'Bajo',
+      piano: 'Piano/Teclado',
+      voz: 'Voz',
+      saxo: 'Saxo',
+      trompeta: 'Trompeta',
+      violin: 'Violín',
+      flauta: 'Flauta',
+      otro: 'Otro'
+    };
+    instrumentStatus.textContent = `Practicando: ${labels[savedInstrument]}`;
+  } else {
+    instrumentSelect.value = '';
+    instrumentStatus.textContent = '';
+  }
+});
+
+// Manejar subida de partitura
 scoreFileInput.addEventListener('change', async function (e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -605,6 +680,11 @@ detectBpmBtn.addEventListener('click', () => {
 const exportPracticeBtn = document.getElementById('exportPractice');
 let currentAudioFile = null;
 let currentScoreFile = null;
+let currentInstrument = '';
+
+instrumentSelect.addEventListener('change', () => {
+  currentInstrument = instrumentSelect.value;
+});
 
 audioFileInput.addEventListener('change', (e) => {
   currentAudioFile = e.target.files[0];
@@ -640,6 +720,7 @@ function generateOfflineHTML(config) {
 </head>
 <body>
   <h2>🎵 Práctica Offline</h2>
+  <h3>Instrumento: ${config.instrumentLabel || 'No especificado'}</h3>
   <audio id="audioPlayer" controls style="width:100%"></audio>
   <div id="scoreContainer"></div>
   <div id="currentMeasureIndicator">Compás: <span id="measure">0</span></div>
@@ -753,6 +834,21 @@ exportPracticeBtn.addEventListener('click', async () => {
     return;
   }
 
+  const instrument = instrumentSelect.value;
+  const instrumentLabels = {
+    bateria: 'Batería',
+    guitarra: 'Guitarra',
+    bajo: 'Bajo',
+    piano: 'Piano/Teclado',
+    voz: 'Voz',
+    saxo: 'Saxo',
+    trompeta: 'Trompeta',
+    violin: 'Violín',
+    flauta: 'Flauta',
+    otro: 'Otro'
+  };
+  const instrumentLabel = instrumentLabels[instrument] || 'No especificado';
+
   const zip = new JSZip();
   
   // Añadir archivos del usuario
@@ -779,7 +875,9 @@ exportPracticeBtn.addEventListener('click', async () => {
     offset: currentOffset,
     loopFrom: loopFromMeasure,
     loopTo: loopToMeasure,
-    structureMarks: structureMarksInput.value
+    structureMarks: structureMarksInput.value,
+    instrument: instrument,
+    instrumentLabel: instrumentLabel
   };
   
   // HTML offline
