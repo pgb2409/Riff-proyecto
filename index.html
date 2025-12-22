@@ -47,6 +47,38 @@
     </label>
   </section>
 
+  <!-- Etapa 3: Controles en vivo + loop -->
+  <section id="liveControlsSection">
+    <h3>🎛️ Controles en vivo (ajuste fino)</h3>
+    <div class="live-controls-row">
+      <button id="offsetMinus">– 0.2s</button>
+      <button id="offsetPlus">+ 0.2s</button>
+    </div>
+    <p>Offset aplicado: <span id="liveOffsetDisplay">0s</span></p>
+
+    <h3>⏭️ Saltos por compases</h3>
+    <div class="live-controls-row">
+      <button id="jumpBack2">◄◄ 2</button>
+      <button id="jumpBack1">◄ 1</button>
+      <button id="jumpForward1">1 ►</button>
+      <button id="jumpForward2">2 ►►</button>
+    </div>
+
+    <h3>🔁 Loop por sección</h3>
+    <label>
+      Desde compás:
+      <input type="number" id="loopFrom" min="1" value="1" />
+    </label>
+    <label>
+      Hasta compás:
+      <input type="number" id="loopTo" min="1" value="4" />
+    </label>
+    <br />
+    <button id="setLoop">Establecer loop</button>
+    <button id="clearLoop">Limpiar loop</button>
+    <p id="loopStatus">Sin loop activo</p>
+  </section>
+
   <!-- Indicador fijo de compás actual -->
   <div id="currentMeasureIndicator" style="display: none;">
     Compás actual: <span id="currentMeasureNumber">0</span>
