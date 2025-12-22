@@ -62,11 +62,12 @@ scoreFileInput.addEventListener('change', async function (e) {
 
   scoreContainer.innerHTML = '<p>Cargando partitura...</p>';
 
-  const url = URL.createObjectURL(file);
-
   if (file.type === 'application/pdf') {
     try {
-      const pdf = await pdfjsLib.getDocument(url).promise;
+      // ✅ Corrección: usar arrayBuffer en lugar de URL.createObjectURL
+      const arrayBuffer = await file.arrayBuffer();
+      const typedarray = new Uint8Array(arrayBuffer);
+      const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
       const page = await pdf.getPage(1);
       const scale = 1.5;
       const viewport = page.getViewport({ scale });
@@ -81,10 +82,11 @@ scoreFileInput.addEventListener('change', async function (e) {
 
       await page.render({ canvasContext: context, viewport }).promise;
     } catch (err) {
-      scoreContainer.innerHTML = '<p>Error al cargar el PDF.</p>';
-      console.error(err);
+      scoreContainer.innerHTML = '<p>Error al cargar el PDF. Asegúrate de que el archivo sea válido.</p>';
+      console.error('Error PDF:', err);
     }
   } else if (file.type.startsWith('image/')) {
+    const url = URL.createObjectURL(file);
     const img = document.createElement('img');
     img.src = url;
     img.alt = 'Partitura';
@@ -277,7 +279,6 @@ function updateLiveOffsetDisplay() {
 offsetMinusBtn.addEventListener('click', () => {
   liveFineOffset -= 0.2;
   updateLiveOffsetDisplay();
-  // Nota: el audio no se detiene; el offset se usa en la lógica de compás
 });
 
 offsetPlusBtn.addEventListener('click', () => {
