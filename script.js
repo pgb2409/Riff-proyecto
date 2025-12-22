@@ -1,5 +1,5 @@
 // Elementos del DOM
-const audioFile input = document.getElementById('audioFile');
+const audioFileInput = document.getElementById('audioFile');
 const audioPlayer = document.getElementById('audioPlayer');
 const scoreFileInput = document.getElementById('scoreFile');
 const scoreContainer = document.getElementById('scoreContainer');
@@ -67,7 +67,7 @@ scoreFileInput.addEventListener('change', async function (e) {
       // ✅ Corrección definitiva: usar 'data' como clave
       const arrayBuffer = await file.arrayBuffer();
       const typedarray = new Uint8Array(arrayBuffer);
-      const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+      const pdf = await pdfjsLib.getDocument({  typedarray }).promise;
       const page = await pdf.getPage(1);
       const scale = 1.5;
       const viewport = page.getViewport({ scale });
