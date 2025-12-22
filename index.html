@@ -3,168 +3,223 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Music Student MVP</title>
+  <title>Domina tu instrumento</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>🎵 App para Estudiantes de Música (MVP)</h1>
-
-  <!-- Audio Upload -->
-  <section>
-    <label for="audioFile">Sube tu audio (MP3 o MP4):</label>
-    <p class="hint">Selecciona la grabación de la pieza que vas a practicar.</p>
-    <input type="file" id="audioFile" accept="audio/mp3,audio/mpeg,video/mp4" />
-    <br />
-    <audio id="audioPlayer" controls style="width: 100%; margin-top: 10px;"></audio>
-    <br />
-    <button id="markFirstNote" disabled>La primera nota entra aquí</button>
-    <p class="hint">Reproduce el audio y haz clic en este botón exactamente cuando suene la primera nota. Esto sincroniza la partitura con el audio.</p>
-  </section>
-
-  <!-- Score Upload -->
-  <section>
-    <label for="scoreFile">Sube tu partitura (PDF, JPG o PNG):</label>
-    <p class="hint">Sube una foto, escaneo o PDF de tu partitura, tablatura o hoja de acordes.</p>
-    <input type="file" id="scoreFile" accept=".pdf,.jpg,.jpeg,.png" />
-    <div id="scoreContainer" style="margin-top: 10px; text-align: center; min-height: 400px;"></div>
-  </section>
-
-  <!-- Modo Profesor (Etapa 6) -->
-  <section id="teacherModeSection">
-    <h3>👨‍🏫 Modo profesor</h3>
-    <p class="hint">Configura BPM, offset y secciones para compartir con tus alumnos.</p>
-    <label for="teacherBpm">BPM:</label>
-    <input type="number" id="teacherBpm" min="20" max="300" placeholder="120" />
-    
-    <label for="teacherOffset">Offset (segundos):</label>
-    <input type="number" id="teacherOffset" step="0.1" placeholder="0" />
-    
-    <label for="structureMarks">Marcas de estructura (opcional):</label>
-    <p class="hint">Ej: "1:Intro,4:Verso,8:Estribillo" (compás:nombre)</p>
-    <input type="text" id="structureMarks" placeholder="1:Intro,4:Verso" style="width: 100%;" />
-    
-    <label>Rango de loop:</label>
-    <div style="display: flex; gap: 10px;">
-      <input type="number" id="teacherLoopFrom" min="1" placeholder="Desde" />
-      <input type="number" id="teacherLoopTo" min="1" placeholder="Hasta" />
+  <!-- Pantalla de inicio -->
+  <div id="welcomeScreen" class="screen">
+    <div class="header">
+      <div class="logo">
+        <div class="icon">🎵</div>
+      </div>
+      <div class="waveform"></div>
     </div>
-    
-    <button id="generateLink">Generar enlace para compartir</button>
-    <p id="shareLink" style="word-break: break-all; margin-top: 10px; display: none;"></p>
-  </section>
-
-  <!-- Offset Display -->
-  <section>
-    <p id="offsetStatus">Desfase actual: 0s (ajustado automáticamente o manual)</p>
-    <label for="manualOffset">Ajuste manual (segundos):</label>
-    <p class="hint">Si la partitura va adelantada o atrasada, ajusta aquí en pequeños pasos (ej. +0.2 o -0.3).</p>
-    <input type="number" id="manualOffset" step="0.1" value="0" />
-    <button id="applyManualOffset">Aplicar ajuste manual</button>
-  </section>
-
-  <!-- Etapa 2: Sincronización rítmica -->
-  <section id="rhythmSection">
-    <label for="bpmInput">BPM (beats per minute):</label>
-    <p class="hint">Escribe el tempo de la pieza (ej. 120). La app usará esto para marcar los compases.</p>
-    <input type="number" id="bpmInput" min="20" max="300" placeholder="Ej. 120" />
-    <button id="startSync">Iniciar sincronización rítmica</button>
-    <button id="stopSync">Detener</button>
-    <p id="measureInfo">Duración de compás: -- segundos</p>
-    <label>
-      <input type="checkbox" id="followMode" checked />
-      Modo “seguir siempre” (no se detiene)
-    </label>
-    <p class="hint">Si activas esta opción, el resaltado de compases seguirá avanzando aunque te pierdas.</p>
-  </section>
-
-  <!-- Etapa 3: Controles en vivo + loop -->
-  <section id="liveControlsSection">
-    <h3>🎛️ Controles en vivo (ajuste fino)</h3>
-    <p class="hint">Ajusta la sincronización sobre la marcha mientras practicas.</p>
-    <div class="live-controls-row">
-      <button id="offsetMinus">– 0.2s</button>
-      <button id="offsetPlus">+ 0.2s</button>
+    <div class="content">
+      <h1>Domina tu <span>instrumento</span></h1>
+      <p>Sincronización de audio y partituras en tiempo real con resaltado inteligente.</p>
+      <div class="progress">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <button id="startBtn" class="btn-primary">▶️ Comenzar Ahora</button>
+      <p class="login-link">¿Ya tienes cuenta? <a id="loginLink">Inicia Sesión</a></p>
     </div>
-    <p>Offset aplicado: <span id="liveOffsetDisplay">0s</span></p>
+  </div>
 
-    <h3>⏭️ Saltos por compases</h3>
-    <p class="hint">Avanza o retrocede compases para repetir secciones difíciles.</p>
-    <div class="live-controls-row">
-      <button id="jumpBack2">◄◄ 2</button>
-      <button id="jumpBack1">◄ 1</button>
-      <button id="jumpForward1">1 ►</button>
-      <button id="jumpForward2">2 ►►</button>
+  <!-- App principal (oculta al inicio) -->
+  <div id="appContainer" class="screen" style="display: none;">
+    <div class="app-header">
+      <button id="backToWelcome" class="btn-back">← Volver</button>
+      <h2>🎵 App para Estudiantes de Música</h2>
     </div>
 
-    <h3>🔁 Loop por sección</h3>
-    <p class="hint">Repite una sección automáticamente (ej. compases 5 a 8).</p>
-    <label>
-      Desde compás:
-      <input type="number" id="loopFrom" min="1" value="1" />
-    </label>
-    <label>
-      Hasta compás:
-      <input type="number" id="loopTo" min="1" value="4" />
-    </label>
-    <br />
-    <button id="setLoop">Establecer loop</button>
-    <button id="clearLoop">Limpiar loop</button>
-    <p id="loopStatus">Sin loop activo</p>
-  </section>
+    <!-- Audio Upload -->
+    <section class="upload-section">
+      <label for="audioFile">Sube tu audio (MP3 o MP4):</label>
+      <p class="hint">Selecciona la grabación de la pieza que vas a practicar.</p>
+      <input type="file" id="audioFile" accept="audio/mp3,audio/mpeg,video/mp4" />
+      <br />
+      <audio id="audioPlayer" controls style="width: 100%; margin-top: 10px;"></audio>
+      <br />
+      <button id="markFirstNote" disabled>La primera nota entra aquí</button>
+      <p class="hint">Reproduce el audio y haz clic en este botón exactamente cuando suene la primera nota. Esto sincroniza la partitura con el audio.</p>
+    </section>
 
-  <!-- Etapa 4: Feedback visual rítmico -->
-  <section id="visualFeedbackSection">
-    <h3>👁️ Feedback visual rítmico</h3>
-    <p class="hint">Prepárate antes de tocar: verás un pulso visual que marca el ritmo durante un compás.</p>
-    <button id="startCountdown">Iniciar cuenta atrás (1 compás)</button>
-    <div id="pulseContainer">
-      <div id="pulseCircle"></div>
+    <!-- Score Upload -->
+    <section class="upload-section">
+      <label for="scoreFile">Sube tu partitura (PDF, JPG o PNG):</label>
+      <p class="hint">Sube una foto, escaneo o PDF de tu partitura, tablatura o hoja de acordes.</p>
+      <input type="file" id="scoreFile" accept=".pdf,.jpg,.jpeg,.png" />
+      <div id="scoreContainer" style="margin-top: 10px; text-align: center; min-height: 400px;"></div>
+    </section>
+
+    <!-- Modo Profesor (Etapa 6) -->
+    <section id="teacherModeSection" class="config-section">
+      <h3>👨‍🏫 Modo profesor</h3>
+      <p class="hint">Configura BPM, offset y secciones para compartir con tus alumnos.</p>
+      <label for="teacherBpm">BPM:</label>
+      <input type="number" id="teacherBpm" min="20" max="300" placeholder="120" />
+      
+      <label for="teacherOffset">Offset (segundos):</label>
+      <input type="number" id="teacherOffset" step="0.1" placeholder="0" />
+      
+      <label for="structureMarks">Marcas de estructura (opcional):</label>
+      <p class="hint">Ej: "1:Intro,4:Verso,8:Estribillo" (compás:nombre)</p>
+      <input type="text" id="structureMarks" placeholder="1:Intro,4:Verso" style="width: 100%;" />
+      
+      <label>Rango de loop:</label>
+      <div style="display: flex; gap: 10px;">
+        <input type="number" id="teacherLoopFrom" min="1" placeholder="Desde" />
+        <input type="number" id="teacherLoopTo" min="1" placeholder="Hasta" />
+      </div>
+      
+      <button id="generateLink">Generar enlace para compartir</button>
+      <p id="shareLink" style="word-break: break-all; margin-top: 10px; display: none;"></p>
+    </section>
+
+    <!-- Offset Display -->
+    <section class="control-section">
+      <p id="offsetStatus">Desfase actual: 0s (ajustado automáticamente o manual)</p>
+      <label for="manualOffset">Ajuste manual (segundos):</label>
+      <p class="hint">Si la partitura va adelantada o atrasada, ajusta aquí en pequeños pasos (ej. +0.2 o -0.3).</p>
+      <input type="number" id="manualOffset" step="0.1" value="0" />
+      <button id="applyManualOffset">Aplicar ajuste manual</button>
+    </section>
+
+    <!-- Etapa 2: Sincronización rítmica -->
+    <section id="rhythmSection" class="control-section">
+      <label for="bpmInput">BPM (beats per minute):</label>
+      <p class="hint">Escribe el tempo de la pieza (ej. 120). La app usará esto para marcar los compases.</p>
+      <input type="number" id="bpmInput" min="20" max="300" placeholder="Ej. 120" />
+      <button id="startSync">Iniciar sincronización rítmica</button>
+      <button id="stopSync">Detener</button>
+      <p id="measureInfo">Duración de compás: -- segundos</p>
+      <label>
+        <input type="checkbox" id="followMode" checked />
+        Modo “seguir siempre” (no se detiene)
+      </label>
+      <p class="hint">Si activas esta opción, el resaltado de compases seguirá avanzando aunque te pierdas.</p>
+    </section>
+
+    <!-- Etapa 3: Controles en vivo + loop -->
+    <section id="liveControlsSection" class="control-section">
+      <h3>🎛️ Controles en vivo (ajuste fino)</h3>
+      <p class="hint">Ajusta la sincronización sobre la marcha mientras practicas.</p>
+      <div class="live-controls-row">
+        <button id="offsetMinus">– 0.2s</button>
+        <button id="offsetPlus">+ 0.2s</button>
+      </div>
+      <p>Offset aplicado: <span id="liveOffsetDisplay">0s</span></p>
+
+      <h3>⏭️ Saltos por compases</h3>
+      <p class="hint">Avanza o retrocede compases para repetir secciones difíciles.</p>
+      <div class="live-controls-row">
+        <button id="jumpBack2">◄◄ 2</button>
+        <button id="jumpBack1">◄ 1</button>
+        <button id="jumpForward1">1 ►</button>
+        <button id="jumpForward2">2 ►►</button>
+      </div>
+
+      <h3>🔁 Loop por sección</h3>
+      <p class="hint">Repite una sección automáticamente (ej. compases 5 a 8).</p>
+      <label>
+        Desde compás:
+        <input type="number" id="loopFrom" min="1" value="1" />
+      </label>
+      <label>
+        Hasta compás:
+        <input type="number" id="loopTo" min="1" value="4" />
+      </label>
+      <br />
+      <button id="setLoop">Establecer loop</button>
+      <button id="clearLoop">Limpiar loop</button>
+      <p id="loopStatus">Sin loop activo</p>
+    </section>
+
+    <!-- Etapa 4: Feedback visual rítmico -->
+    <section id="visualFeedbackSection" class="control-section">
+      <h3>👁️ Feedback visual rítmico</h3>
+      <p class="hint">Prepárate antes de tocar: verás un pulso visual que marca el ritmo durante un compás.</p>
+      <button id="startCountdown">Iniciar cuenta atrás (1 compás)</button>
+      <div id="pulseContainer">
+        <div id="pulseCircle"></div>
+      </div>
+    </section>
+
+    <!-- Etapa 5: Modos de visualización -->
+    <section id="viewModesSection" class="control-section">
+      <h3>👁️ Modos de visualización</h3>
+      <p class="hint">Elige cómo quieres ver la práctica.</p>
+      <button id="toggleFormMode">Modo “solo forma”</button>
+      <button id="toggleLookMode">Modo “solo mirar”</button>
+      <p id="modeStatus">Modo actual: Normal</p>
+      <p class="hint">• <strong>Solo forma</strong>: oculta la partitura, útil para memorizar.  
+         • <strong>Solo mirar</strong>: avanza sin audio, ideal para estudiar el ritmo antes de tocar.</p>
+    </section>
+
+    <!-- Etapa 7: Mejoras avanzadas -->
+    <section id="advancedFeaturesSection" class="control-section">
+      <h3>🔬 Mejoras avanzadas</h3>
+      
+      <label for="playbackRate">Velocidad de reproducción:</label>
+      <p class="hint">Ajusta la velocidad sin cambiar el tono (si el navegador lo permite).</p>
+      <input type="range" id="playbackRate" min="0.5" max="2" step="0.1" value="1" />
+      <span id="playbackRateValue">1x</span>
+      
+      <button id="detectBpm" style="margin-top: 10px;">Detectar BPM automáticamente</button>
+      <p id="bpmDetectionStatus" style="font-size: 0.9em; color: #555;"></p>
+    </section>
+
+    <!-- ✅ DESCARGA FINAL -->
+    <section id="exportSection" class="control-section">
+      <h3>💾 Descargar práctica para usar sin internet</h3>
+      <p class="hint">Una vez configurado todo, descarga un archivo ZIP listo para usar sin conexión.</p>
+      <button id="exportPractice" disabled>.Descargar práctica sincronizada</button>
+    </section>
+
+    <!-- Marcas de estructura -->
+    <div id="structureBar" style="display: none; position: fixed; top: 50px; left: 0; right: 0; background: #333; color: white; padding: 5px; text-align: center; z-index: 999;"></div>
+    <div id="currentMeasureIndicator" style="display: none;">Compás actual: <span id="currentMeasureNumber">0</span></div>
+
+    <!-- Botón de descarga offline -->
+    <div class="footer-actions">
+      <button id="downloadOffline" class="btn-secondary">📥 Descargar versión offline</button>
     </div>
-  </section>
+  </div>
 
-  <!-- Etapa 5: Modos de visualización -->
-  <section id="viewModesSection">
-    <h3>👁️ Modos de visualización</h3>
-    <p class="hint">Elige cómo quieres ver la práctica.</p>
-    <button id="toggleFormMode">Modo “solo forma”</button>
-    <button id="toggleLookMode">Modo “solo mirar”</button>
-    <p id="modeStatus">Modo actual: Normal</p>
-    <p class="hint">• <strong>Solo forma</strong>: oculta la partitura, útil para memorizar.  
-       • <strong>Solo mirar</strong>: avanza sin audio, ideal para estudiar el ritmo antes de tocar.</p>
-  </section>
-
-  <!-- Etapa 7: Mejoras avanzadas -->
-  <section id="advancedFeaturesSection">
-    <h3>🔬 Mejoras avanzadas</h3>
-    
-    <label for="playbackRate">Velocidad de reproducción:</label>
-    <p class="hint">Ajusta la velocidad sin cambiar el tono (si el navegador lo permite).</p>
-    <input type="range" id="playbackRate" min="0.5" max="2" step="0.1" value="1" />
-    <span id="playbackRateValue">1x</span>
-    
-    <button id="detectBpm" style="margin-top: 10px;">Detectar BPM automáticamente</button>
-    <p id="bpmDetectionStatus" style="font-size: 0.9em; color: #555;"></p>
-  </section>
-
-  <!-- ✅ NUEVO: Botón de descarga -->
-  <section id="exportSection">
-    <h3>💾 Descargar práctica para usar sin internet</h3>
-    <p class="hint">Una vez tengas todo listo, descarga un archivo ZIP que podrás usar sin conexión. Incluye tu audio, partitura y configuración.</p>
-    <button id="exportPractice" disabled>Descargar práctica sincronizada</button>
-  </section>
-
-  <!-- Elementos fijos -->
-  <div id="structureBar" style="display: none; position: fixed; top: 50px; left: 0; right: 0; background: #333; color: white; padding: 5px; text-align: center; z-index: 999;"></div>
-  <div id="currentMeasureIndicator" style="display: none;">Compás actual: <span id="currentMeasureNumber">0</span></div>
-
-  <!-- PDF.js -->
+  <!-- Cargar PDF.js -->
   <script src="pdfjs/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdfjs/pdf.worker.min.js';</script>
 
-  <!-- Librerías para ZIP (solo se usan al exportar) -->
+  <!-- Librerías para ZIP -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
   <script src="script.js"></script>
+
+  <!-- Script para manejar pantallas -->
+  <script>
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    const appContainer = document.getElementById('appContainer');
+    const startBtn = document.getElementById('startBtn');
+    const backToWelcome = document.getElementById('backToWelcome');
+    const loginLink = document.getElementById('loginLink');
+
+    startBtn.addEventListener('click', () => {
+      welcomeScreen.style.display = 'none';
+      appContainer.style.display = 'block';
+    });
+
+    backToWelcome.addEventListener('click', () => {
+      appContainer.style.display = 'none';
+      welcomeScreen.style.display = 'flex';
+    });
+
+    loginLink.addEventListener('click', () => {
+      alert('Funcionalidad de login no implementada aún. Próximamente.');
+    });
+  </script>
 </body>
 </html>
