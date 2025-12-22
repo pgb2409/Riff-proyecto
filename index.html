@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Domina tu instrumento</title>
   <style>
+    /* ... (todo el CSS igual que antes) ... */
     * {
       margin: 0;
       padding: 0;
@@ -980,7 +981,26 @@
       document.getElementById('measureInfo').textContent = `Duración de compás: ${measureDuration.toFixed(2)}s`;
     });
 
-    // === Login/Register/Admin (CORREGIDO) ===
+    // === ✅ FUNCIÓN LOGIN CORREGIDA ===
+    function login(email, password) {
+      // ✅ Primero: verificar admin
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        localStorage.setItem(isAdminKey, 'true');
+        return { name: 'Administrador', lastname: '', email, admin: true };
+      }
+      
+      // Luego: verificar usuarios normales
+      const users = JSON.parse(localStorage.getItem(usersKey) || '[]');
+      const user = users.find(u => u.email === email && u.password === password);
+      if (user) {
+        localStorage.setItem(currentUserKey, email);
+        localStorage.removeItem(isAdminKey);
+        return { name: user.name, lastname: user.lastname, email, admin: false };
+      }
+      return null;
+    }
+
+    // === Resto igual ===
     function saveUser(name, lastname, email, password) {
       let users = JSON.parse(localStorage.getItem(usersKey) || '[]');
       const exists = users.some(u => u.email === email);
@@ -992,21 +1012,6 @@
       }
       localStorage.setItem(currentUserKey, email);
       return { name, lastname, email };
-    }
-
-    function login(email, password) {
-      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-        localStorage.setItem(isAdminKey, 'true');
-        return { name: 'Administrador', lastname: '', email, admin: true };
-      }
-      const users = JSON.parse(localStorage.getItem(usersKey) || '[]');
-      const user = users.find(u => u.email === email && u.password === password);
-      if (user) {
-        localStorage.setItem(currentUserKey, email);
-        localStorage.removeItem(isAdminKey);
-        return { name: user.name, lastname: user.lastname, email, admin: false };
-      }
-      return null;
     }
 
     function logout() {
@@ -1029,7 +1034,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       displayStats();
 
-      // ✅ CORRECCIÓN: activar el botón "Inicia sesión"
+      // Activar "Inicia sesión"
       document.getElementById('showLogin').addEventListener('click', (e) => {
         e.preventDefault();
         document.getElementById('registerForm').style.display = 'none';
@@ -1099,7 +1104,7 @@
         document.getElementById('welcomeScreen').style.display = 'flex';
       });
 
-      // También activar "Regístrate" desde login
+      // "Regístrate" desde login
       document.getElementById('showRegister').addEventListener('click', (e) => {
         e.preventDefault();
         document.getElementById('loginForm').style.display = 'none';
