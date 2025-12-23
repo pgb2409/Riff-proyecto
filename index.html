@@ -172,6 +172,7 @@
             const embed = document.createElement('embed');
             embed.src = url;
             embed.type = 'application/pdf';
+            embed.id = 'scoreContent'; // ✅ ID para referencia
             scoreContainer.innerHTML = '';
             scoreContainer.appendChild(embed);
           } catch (e) {
@@ -181,6 +182,7 @@
           const url = URL.createObjectURL(currentScoreFile);
           const img = document.createElement('img');
           img.src = url;
+          img.id = 'scoreContent'; // ✅ ID para referencia
           scoreContainer.innerHTML = '';
           scoreContainer.appendChild(img);
         } else {
@@ -194,7 +196,7 @@
       currentInstrument = instrumentSelect.value;
     });
 
-    // Overlay anclado al contenedor
+    // ✅ FUNCIÓN CORREGIDA: Overlay anclado a la partitura real
     function createOverlay() {
       if (overlayCanvas) {
         if (overlayCanvas.parentNode) {
@@ -203,33 +205,39 @@
         overlayCanvas = null;
       }
 
+      // ✅ Buscar la partitura real (img o embed)
+      const content = document.getElementById('scoreContent');
+      if (!content) return;
+
+      // ✅ Crear overlay dentro del contenedor, pero posicionado sobre la partitura
       overlayCanvas = document.createElement('canvas');
-      overlayCanvas.width = scoreContainer.clientWidth;
-      overlayCanvas.height = scoreContainer.clientHeight;
       overlayCanvas.style.position = 'absolute';
-      overlayCanvas.style.top = '0';
-      overlayCanvas.style.left = '0';
       overlayCanvas.style.pointerEvents = 'none';
       overlayCanvas.style.zIndex = '10';
       scoreContainer.appendChild(overlayCanvas);
+
+      // ✅ Ajustar tamaño al de la partitura real
+      const rect = content.getBoundingClientRect();
+      const containerRect = scoreContainer.getBoundingClientRect();
+      
+      overlayCanvas.width = rect.width;
+      overlayCanvas.height = rect.height;
+      overlayCanvas.style.left = (rect.left - containerRect.left) + 'px';
+      overlayCanvas.style.top = (rect.top - containerRect.top) + 'px';
     }
 
-    // ✅ FUNCIÓN CORREGIDA: Resaltar la partitura completa
+    // ✅ FUNCIÓN CORREGIDA: Resaltar sobre la partitura real
     function highlightMeasure(index) {
       if (!overlayCanvas) return;
       const ctx = overlayCanvas.getContext('2d');
       ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
       
-      // Calcular el ancho de un compás (asumiendo 4 compases por línea)
       const measuresPerLine = 4;
       const measureWidth = overlayCanvas.width / measuresPerLine;
-      const lineHeight = overlayCanvas.height * 0.2; // 20% de la altura por línea
-      
-      // Calcular posición
+      const lineHeight = overlayCanvas.height * 0.2;
       const line = Math.floor(index / measuresPerLine);
       const col = index % measuresPerLine;
       
-      // Solo resaltar si está en las primeras 5 líneas (para evitar salir del canvas)
       if (line * lineHeight < overlayCanvas.height) {
         ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
         ctx.fillRect(
@@ -245,7 +253,7 @@
     function startSync() {
       document.getElementById('currentMeasureIndicator').style.display = 'block';
       measureDuration = 60 / bpm;
-      createOverlay();
+      createOverlay(); // ✅ Se llama después de cargar
       
       if (syncInterval) clearInterval(syncInterval);
       syncInterval = setInterval(() => {
