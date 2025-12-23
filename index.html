@@ -152,10 +152,9 @@
     Compás: <span id="measureNumber">0</span>
   </div>
 
-  <!-- PDF.js (rutas relativas para GitHub Pages) -->
+  <!-- PDF.js -->
   <script src="./pdfjs/pdf.min.js"></script>
   <script>
-    // ✅ Ruta relativa para GitHub Pages
     pdfjsLib.GlobalWorkerOptions.workerSrc = './pdfjs/pdf.worker.min.js';
   </script>
 
@@ -218,14 +217,14 @@
       currentInstrument = instrumentSelect.value;
     });
 
-    // === ✅ Resaltado pequeño y útil ===
+    // === Resaltado pequeño y útil ===
     function highlightMeasure(measureIndex) {
       const overlay = document.getElementById('highlight-overlay');
       overlay.innerHTML = '';
 
       if (measureIndex < 0) return;
 
-      const totalMeasures = 12; // Ajusta si tu partitura tiene más/menos compases
+      const totalMeasures = 12;
       const containerHeight = 500;
       const measureHeight = containerHeight / totalMeasures;
       const top = measureIndex * measureHeight;
@@ -270,7 +269,7 @@
       startSync();
     });
 
-    // === 🔒 RESTO DE TU CÓDIGO: login, admin, contadores, etc. SIN CAMBIOS ===
+    // === RESTO DE TU CÓDIGO: login, admin, contadores, etc. SIN CAMBIOS ===
     const usersKey = 'musicApp_users';
     const currentUserKey = 'musicApp_currentUser';
     const USER_COUNT_KEY = 'musicApp_userCount';
