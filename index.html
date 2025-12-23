@@ -62,12 +62,13 @@
       color: #aaa;
       overflow: hidden;
       position: relative;
+      background: #1e1e1e;
     }
     #scoreContent {
       width: 100%;
       height: 100%;
       object-fit: contain;
-      display: block;
+      display: none;
     }
     #highlightOverlay {
       position: absolute;
@@ -126,7 +127,11 @@
       </select>
       
       <audio id="audioPlayer" controls style="width: 100%; margin: 15px 0; background: #2c243a; padding: 10px; border-radius: 6px;"></audio>
+      
+      <!-- ✅ Contenedor UNIFICADO para partitura + resaltado -->
       <div id="scoreContainer">
+        <embed id="sheet-embed" type="application/pdf" style="width:100%; height:100%; display:none; border:none;" />
+        <img id="sheet-img" style="width:100%; height:100%; object-fit:contain; display:none;" />
         <div id="highlightOverlay"></div>
       </div>
     </div>
@@ -142,31 +147,30 @@
     Compás: <span id="measureNumber">0</span>
   </div>
 
-  <!-- PDF.js -->
+  <!-- PDF.js (solo para fallback si embed falla) -->
   <script src="pdfjs/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdfjs/pdf.worker.min.js';</script>
 
   <script>
-    // Estado
+    // === Estado global ===
     let currentAudioFile = null;
     let currentScoreFile = null;
     let currentInstrument = '';
     let currentOffset = 0;
     let bpm = 120;
-    let measureDuration = 60 / bpm;
     let syncInterval = null;
 
-    // Elementos
+    // === Elementos del DOM ===
     const audioFileInput = document.getElementById('audioFile');
     const scoreFileInput = document.getElementById('scoreFile');
     const instrumentSelect = document.getElementById('instrumentSelect');
     const startPracticeBtn = document.getElementById('startPractice');
     const audioPlayer = document.getElementById('audioPlayer');
-    const scoreContainer = document.getElementById('scoreContainer');
-    const highlightOverlay = document.getElementById('highlightOverlay');
+    const sheetEmbed = document.getElementById('sheet-embed');
+    const sheetImg = document.getElementById('sheet-img');
     const measureNumberEl = document.getElementById('measureNumber');
 
-    // Cargar audio
+    // === Cargar audio ===
     audioFileInput.addEventListener('change', (e) => {
       currentAudioFile = e.target.files[0];
       if (currentAudioFile) {
@@ -175,105 +179,78 @@
       }
     });
 
-    // Cargar partitura
-    scoreFileInput.addEventListener('change', (e) => {
+    // === Cargar partitura (PDF o imagen) ===
+    scoreFileInput.addEventListener('change', async (e) => {
       currentScoreFile = e.target.files[0];
       if (!currentScoreFile) return;
-      
-      // Limpiar contenedor
-      const contentElements = scoreContainer.querySelectorAll('img, embed');
-      contentElements.forEach(el => el.remove());
-      
+
+      // Reset
+      sheetEmbed.style.display = 'none';
+      sheetEmbed.removeAttribute('src');
+      sheetImg.style.display = 'none';
+      sheetImg.removeAttribute('src');
+
+      const url = URL.createObjectURL(currentScoreFile);
+
       if (currentScoreFile.type === 'application/pdf') {
-        try {
-          const url = URL.createObjectURL(currentScoreFile);
-          const embed = document.createElement('embed');
-          embed.src = url;
-          embed.type = 'application/pdf';
-          embed.width = '100%';
-          embed.height = '100%';
-          embed.style.border = 'none';
-          scoreContainer.insertBefore(embed, highlightOverlay);
-        } catch (e) {
-          const error = document.createElement('p');
-          error.style.color = '#ff6b6b';
-          error.textContent = 'Error al cargar PDF';
-          scoreContainer.insertBefore(error, highlightOverlay);
-        }
+        // Intentar primero con <embed> (más simple y estable)
+        sheetEmbed.src = url;
+        sheetEmbed.style.display = 'block';
       } else if (currentScoreFile.type.startsWith('image/')) {
-        const url = URL.createObjectURL(currentScoreFile);
-        const img = document.createElement('img');
-        img.src = url;
-        img.style.maxWidth = '100%';
-        img.style.maxHeight = '100%';
-        img.style.width = 'auto';
-        img.style.height = 'auto';
-        img.style.objectFit = 'contain';
-        scoreContainer.insertBefore(img, highlightOverlay);
+        sheetImg.src = url;
+        sheetImg.style.display = 'block';
       } else {
-        const error = document.createElement('p');
-        error.style.color = '#ff6b6b';
-        error.textContent = 'Formato no soportado';
-        scoreContainer.insertBefore(error, highlightOverlay);
+        alert('Formato no soportado. Usa PDF, JPG o PNG.');
       }
     });
 
-    // Seleccionar instrumento
+    // === Seleccionar instrumento ===
     instrumentSelect.addEventListener('change', () => {
       currentInstrument = instrumentSelect.value;
     });
 
-    // Resaltar medida
-    function highlightMeasure(index) {
-      // Ajustar overlay al tamaño del contenido
-      const content = scoreContainer.querySelector('img, embed');
-      if (!content) return;
-      
-      const rect = content.getBoundingClientRect();
-      const containerRect = scoreContainer.getBoundingClientRect();
-      
-      highlightOverlay.style.width = rect.width + 'px';
-      highlightOverlay.style.height = rect.height + 'px';
-      highlightOverlay.style.left = (rect.left - containerRect.left) + 'px';
-      highlightOverlay.style.top = (rect.top - containerRect.top) + 'px';
-      
-      // Limpiar
-      highlightOverlay.innerHTML = '';
-      
-      const measuresPerLine = 4;
-      const measureWidth = rect.width / measuresPerLine;
-      const lineHeight = rect.height * 0.2;
-      const line = Math.floor(index / measuresPerLine);
-      const col = index % measuresPerLine;
-      
-      if (line * lineHeight < rect.height) {
-        const div = document.createElement('div');
-        div.style.position = 'absolute';
-        div.style.left = (col * measureWidth) + 'px';
-        div.style.top = (line * lineHeight) + 'px';
-        div.style.width = measureWidth + 'px';
-        div.style.height = lineHeight + 'px';
-        div.style.background = 'rgba(255, 255, 0, 0.3)';
-        highlightOverlay.appendChild(div);
-      }
+    // === ✅ NUEVA FUNCIÓN: Resaltado anclado al contenido real ===
+    function highlightMeasure(measureIndex, totalMeasures = 12) {
+      const overlay = document.getElementById('highlightOverlay');
+      overlay.innerHTML = '';
+
+      if (measureIndex < 0 || measureIndex >= totalMeasures) return;
+
+      const measureHeightPercent = 100 / totalMeasures;
+      const topPercent = measureIndex * measureHeightPercent;
+
+      const highlight = document.createElement('div');
+      highlight.style.position = 'absolute';
+      highlight.style.left = '0';
+      highlight.style.right = '0';
+      highlight.style.top = topPercent + '%';
+      highlight.style.height = measureHeightPercent + '%';
+      highlight.style.backgroundColor = 'rgba(0, 120, 255, 0.4)';
+      highlight.style.zIndex = '10';
+      overlay.appendChild(highlight);
     }
 
-    // Sincronización
+    // === Calcular compás actual (simple para compases uniformes) ===
+    function calculateCurrentMeasure(currentTime, bpm) {
+      const measureDuration = 60 / bpm;
+      return Math.floor(currentTime / measureDuration);
+    }
+
+    // === Sincronización ===
     function startSync() {
       document.getElementById('currentMeasureIndicator').style.display = 'block';
-      measureDuration = 60 / bpm;
       
       if (syncInterval) clearInterval(syncInterval);
       syncInterval = setInterval(() => {
         const audioTime = audioPlayer.currentTime;
         const syncTime = audioTime + currentOffset;
-        const currentMeasure = syncTime >= 0 ? Math.floor(syncTime / measureDuration) : -1;
+        const currentMeasure = syncTime >= 0 ? calculateCurrentMeasure(syncTime, bpm) : -1;
         measureNumberEl.textContent = currentMeasure + 1;
         highlightMeasure(currentMeasure);
       }, 100);
     }
 
-    // Empezar
+    // === Empezar práctica ===
     startPracticeBtn.addEventListener('click', () => {
       if (!currentAudioFile || !currentScoreFile || !currentInstrument) {
         alert('Por favor, sube el audio, la partitura y elige tu instrumento.');
@@ -282,7 +259,7 @@
       startSync();
     });
 
-    // === Login/Register/Admin (tu código original SIN CAMBIOS) ===
+    // === 🔒 RESTO DE TU CÓDIGO: login, admin, contadores, etc. SIN CAMBIOS ===
     const usersKey = 'musicApp_users';
     const currentUserKey = 'musicApp_currentUser';
     const USER_COUNT_KEY = 'musicApp_userCount';
@@ -363,7 +340,6 @@
       displayStats();
       restoreSession();
 
-      // Login
       document.getElementById('showLogin')?.addEventListener('click', (e) => {
         e.preventDefault();
         document.getElementById('registerForm').style.display = 'none';
@@ -395,7 +371,6 @@
         }
       });
 
-      // Registro
       document.getElementById('registerBtn')?.addEventListener('click', () => {
         const name = document.getElementById('regName').value.trim();
         const lastname = document.getElementById('regLastname').value.trim();
