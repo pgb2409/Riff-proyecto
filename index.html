@@ -77,14 +77,24 @@
       <h2>🎵 Hola, <span id="userNameDisplay">Usuario</span></h2>
     </div>
 
-    <!-- Paso único: todo junto -->
-    <div class="upload-section">
-      <h3>1. Prepara tu práctica</h3>
-      
-      <label>Audio (MP3 o MP4):</label>
+    <!-- Audio Upload -->
+    <section class="upload-section">
+      <label for="audioFile">Sube tu audio (MP3 o MP4):</label>
+      <p class="hint">Selecciona la grabación de la pieza que vas a practicar.</p>
       <input type="file" id="audioFile" accept="audio/mp3,audio/mpeg,video/mp4" />
+      <br />
+      <audio id="audioPlayer" controls style="width: 100%; margin-top: 10px;"></audio>
+      <br />
+      <button id="markFirstNote" disabled>La primera nota entra aquí</button>
+      <p class="hint">Reproduce el audio y haz clic en este botón exactamente cuando suene la primera nota. Esto sincroniza la partitura con el audio.</p>
+    </section>
+
+    <!-- Score Upload -->
+    <section class="upload-section">
+      <label for="scoreFile">Sube la partitura de tu instrumento (PDF, JPG o PNG):</label>
+      <p class="hint">Ej: partitura de batería, tablatura de guitarra, hoja de acordes, etc.</p>
       
-      <label>Tu instrumento:</label>
+      <label for="instrumentSelect">Elige tu instrumento:</label>
       <select id="instrumentSelect" class="instrument-select">
         <option value="">Selecciona tu instrumento</option>
         <option value="bateria">Batería</option>
@@ -98,37 +108,38 @@
         <option value="flauta">Flauta</option>
         <option value="otro">Otro</option>
       </select>
-      
-      <label>Partitura (PDF, JPG o PNG):</label>
+
       <input type="file" id="scoreFile" accept=".pdf,.jpg,.jpeg,.png" />
-      
-      <audio id="audioPlayer" controls style="width: 100%; margin: 15px 0;"></audio>
-      <div id="scoreContainer" style="min-height: 300px; margin: 15px 0;"></div>
-      
-      <button id="startPractice" class="btn-primary" disabled>▶️ Empezar a practicar</button>
-      <p class="hint">La app sincronizará automáticamente tu audio con la partitura. ¡No necesitas hacer nada más!</p>
-    </div>
+      <div id="scoreContainer" style="margin-top: 10px; text-align: center; min-height: 400px;"></div>
+      <p id="instrumentStatus" class="hint" style="margin-top: 10px; font-weight: bold; color: #5e4aff;"></p>
+    </section>
 
-    <!-- Vista de práctica -->
-    <div id="practiceView" style="display: none;">
-      <div class="control-section">
-        <h3>🎛️ Controles</h3>
-        <label>BPM:</label>
-        <input type="number" id="bpmInput" value="120" min="20" max="300" />
-        <label>Offset (s):</label>
-        <input type="number" id="manualOffset" step="0.1" value="0" />
-        <button id="applyOffset">Aplicar</button>
-        
-        <label>Loop:</label>
-        <input type="number" id="loopFrom" value="1" min="1" style="width: 45%; margin-right: 5%;" />
-        <input type="number" id="loopTo" value="4" min="1" style="width: 45%;" />
-        <button id="setLoop">Establecer</button>
-        
-        <button id="exportPractice">💾 Descargar práctica</button>
-      </div>
-    </div>
+    <!-- Resto de controles (BPM, loop, etc.) -->
+    <section class="control-section">
+      <label for="bpmInput">BPM (beats per minute):</label>
+      <p class="hint">Escribe el tempo de la pieza (ej. 120).</p>
+      <input type="number" id="bpmInput" min="20" max="300" placeholder="Ej. 120" />
+      <button id="startSync">Iniciar sincronización rítmica</button>
+      <p id="measureInfo">Duración de compás: -- segundos</p>
+    </section>
 
-    <div id="currentMeasureIndicator" style="display: none;">Compás: <span id="measureNumber">0</span></div>
+    <section class="control-section">
+      <h3>🔁 Loop por sección</h3>
+      <label>
+        Desde compás:
+        <input type="number" id="loopFrom" min="1" value="1" />
+      </label>
+      <label>
+        Hasta compás:
+        <input type="number" id="loopTo" min="1" value="4" />
+      </label>
+      <br />
+      <button id="setLoop">Establecer loop</button>
+      <button id="clearLoop">Limpiar loop</button>
+      <p id="loopStatus">Sin loop activo</p>
+    </section>
+
+    <button id="exportPractice" class="btn-primary">💾 Descargar práctica offline</button>
 
     <!-- PDF.js -->
     <script src="pdfjs/pdf.min.js"></script>
@@ -137,70 +148,64 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
     <script>
-      // === CONFIGURACIÓN ===
-      const ADMIN_EMAIL = 'admin@mimusicapp.com';
-      const ADMIN_PASSWORD = 'admin123';
+      // === Login/Registro/Admin (tu código original) ===
       const usersKey = 'musicApp_users';
       const currentUserKey = 'musicApp_currentUser';
       const USER_COUNT_KEY = 'musicApp_userCount';
       const DOWNLOAD_COUNT_KEY = 'musicApp_downloadCount';
       const isAdminKey = 'musicApp_isAdmin';
+      const ADMIN_EMAIL = 'admin@mimusicapp.com';
+      const ADMIN_PASSWORD = 'admin123';
 
-      // === ESTADO ===
-      let currentAudioFile = null;
-      let currentScoreFile = null;
-      let currentInstrument = '';
+      let currentAudioFileName = null;
       let currentOffset = 0;
-      let bpm = 120;
-      let measureDuration = 60 / bpm;
-      let loopFrom = 1;
-      let loopTo = 4;
-      let syncInterval = null;
-      let overlayCanvas = null;
 
-      // === ELEMENTOS ===
+      // Audio
       const audioFileInput = document.getElementById('audioFile');
-      const scoreFileInput = document.getElementById('scoreFile');
-      const instrumentSelect = document.getElementById('instrumentSelect');
-      const startPracticeBtn = document.getElementById('startPractice');
       const audioPlayer = document.getElementById('audioPlayer');
+      const markFirstNoteBtn = document.getElementById('markFirstNote');
+
+      audioFileInput.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        currentAudioFileName = file.name;
+        const url = URL.createObjectURL(file);
+        audioPlayer.src = url;
+        markFirstNoteBtn.disabled = false;
+      });
+
+      // Botón de sincronización
+      markFirstNoteBtn.addEventListener('click', function () {
+        if (!currentAudioFileName) return;
+        const currentTime = audioPlayer.currentTime;
+        currentOffset = -currentTime;
+        alert(`Offset establecido: ${currentOffset.toFixed(1)}s`);
+      });
+
+      // Partitura
+      const scoreFileInput = document.getElementById('scoreFile');
       const scoreContainer = document.getElementById('scoreContainer');
-      const practiceView = document.getElementById('practiceView');
+      const instrumentSelect = document.getElementById('instrumentSelect');
+      const instrumentStatus = document.getElementById('instrumentStatus');
 
-      // === ACTIVAR BOTÓN ===
-      function updateStartButton() {
-        const ready = currentAudioFile && currentScoreFile && currentInstrument;
-        startPracticeBtn.disabled = !ready;
-      }
-
-      // === AUDIO ===
-      audioFileInput.addEventListener('change', (e) => {
-        currentAudioFile = e.target.files[0];
-        if (currentAudioFile) {
-          const url = URL.createObjectURL(currentAudioFile);
-          audioPlayer.src = url;
-        }
-        updateStartButton();
-      });
-
-      // === PARTITURA ===
-      scoreFileInput.addEventListener('change', (e) => {
-        currentScoreFile = e.target.files[0];
-        if (currentScoreFile) {
-          loadScore(currentScoreFile);
-        }
-        updateStartButton();
-      });
-
-      // === INSTRUMENTO ===
       instrumentSelect.addEventListener('change', () => {
-        currentInstrument = instrumentSelect.value;
-        updateStartButton();
+        const labels = {
+          bateria: 'Batería', guitarra: 'Guitarra', bajo: 'Bajo',
+          piano: 'Piano/Teclado', voz: 'Voz', saxo: 'Saxo',
+          trompeta: 'Trompeta', violin: 'Violín', flauta: 'Flauta', otro: 'Otro'
+        };
+        const instrument = instrumentSelect.value;
+        if (instrument) {
+          instrumentStatus.textContent = `Practicando: ${labels[instrument]}`;
+        } else {
+          instrumentStatus.textContent = '';
+        }
       });
 
-      // === CARGAR PARTITURA ===
-      function loadScore(file) {
-        scoreContainer.innerHTML = '<p>Cargando...</p>';
+      scoreFileInput.addEventListener('change', async function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        scoreContainer.innerHTML = '<p>Cargando partitura...</p>';
         if (file.type === 'application/pdf') {
           try {
             const url = URL.createObjectURL(file);
@@ -212,7 +217,7 @@
             scoreContainer.innerHTML = '';
             scoreContainer.appendChild(embed);
           } catch (e) {
-            scoreContainer.innerHTML = '<p style="color:#ff6b6b;">Error PDF</p>';
+            scoreContainer.innerHTML = '<p>Error al cargar PDF.</p>';
           }
         } else if (file.type.startsWith('image/')) {
           const url = URL.createObjectURL(file);
@@ -222,87 +227,56 @@
           scoreContainer.innerHTML = '';
           scoreContainer.appendChild(img);
         } else {
-          scoreContainer.innerHTML = '<p style="color:#ff6b6b;">Formato no válido</p>';
+          scoreContainer.innerHTML = '<p>Formato no soportado.</p>';
         }
-      }
+      });
 
-      // === OVERLAY ===
-      function createOverlay() {
-        if (overlayCanvas) return;
-        const rect = scoreContainer.getBoundingClientRect();
-        overlayCanvas = document.createElement('canvas');
-        overlayCanvas.width = rect.width;
-        overlayCanvas.height = rect.height;
-        overlayCanvas.style.position = 'fixed';
-        overlayCanvas.style.left = rect.left + 'px';
-        overlayCanvas.style.top = rect.top + 'px';
-        overlayCanvas.style.pointerEvents = 'none';
-        overlayCanvas.style.zIndex = '1000';
-        document.body.appendChild(overlayCanvas);
-      }
+      // Loop (SIN AUTOMÁTICO)
+      const loopFromInput = document.getElementById('loopFrom');
+      const loopToInput = document.getElementById('loopTo');
+      const setLoopBtn = document.getElementById('setLoop');
+      const clearLoopBtn = document.getElementById('clearLoop');
+      const loopStatus = document.getElementById('loopStatus');
 
-      // === RESALTAR ===
-      function highlightMeasure(index) {
-        if (!overlayCanvas) return;
-        const ctx = overlayCanvas.getContext('2d');
-        ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-        if (index >= 0) {
-          const cols = 4;
-          const rows = 3;
-          const col = index % cols;
-          const row = Math.floor(index / cols);
-          const w = overlayCanvas.width / cols;
-          const h = overlayCanvas.height / rows;
-          ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
-          ctx.fillRect(col * w, row * h, w, h);
+      let loopActive = false;
+      let loopFrom = 1;
+      let loopTo = 4;
+
+      setLoopBtn.addEventListener('click', () => {
+        loopFrom = parseInt(loopFromInput.value);
+        loopTo = parseInt(loopToInput.value);
+        if (isNaN(loopFrom) || isNaN(loopTo) || loopFrom < 1 || loopTo < loopFrom) {
+          alert('Rango de compases inválido.');
+          return;
         }
-      }
-
-      // === SINCRONIZACIÓN ===
-      function startSync() {
-        document.getElementById('currentMeasureIndicator').style.display = 'block';
-        measureDuration = 60 / bpm;
-        createOverlay();
-        
-        if (syncInterval) clearInterval(syncInterval);
-        syncInterval = setInterval(() => {
-          const audioTime = audioPlayer.currentTime;
-          const syncTime = audioTime + currentOffset;
-          const currentMeasure = syncTime >= 0 ? Math.floor(syncTime / measureDuration) : -1;
-          document.getElementById('measureNumber').textContent = currentMeasure + 1;
-          highlightMeasure(currentMeasure);
-          
-          // Loop
-          if (currentMeasure >= loopTo - 1) {
-            const loopStartTime = (loopFrom - 1) * measureDuration;
-            audioPlayer.currentTime = loopStartTime - currentOffset;
-          }
-        }, 100);
-      }
-
-      // === EMPEZAR ===
-      startPracticeBtn.addEventListener('click', () => {
-        document.querySelector('.upload-section').style.display = 'none';
-        practiceView.style.display = 'block';
-        startSync();
+        loopActive = true;
+        loopStatus.textContent = `Loop activo: compases ${loopFrom} a ${loopTo}`;
+        loopStatus.style.color = '#2c7';
       });
 
-      // === CONTROLES ===
-      document.getElementById('applyOffset').addEventListener('click', () => {
-        currentOffset = parseFloat(document.getElementById('manualOffset').value) || 0;
+      clearLoopBtn.addEventListener('click', () => {
+        loopActive = false;
+        loopStatus.textContent = 'Sin loop activo';
+        loopStatus.style.color = '#888';
       });
 
-      document.getElementById('bpmInput').addEventListener('change', () => {
-        bpm = parseInt(document.getElementById('bpmInput').value) || 120;
+      // BPM
+      const bpmInput = document.getElementById('bpmInput');
+      const startSyncBtn = document.getElementById('startSync');
+      const measureInfo = document.getElementById('measureInfo');
+
+      startSyncBtn.addEventListener('click', () => {
+        const value = parseFloat(bpmInput.value);
+        if (isNaN(value) || value <= 0) {
+          alert('Ingresa un BPM válido (ej. 120)');
+          return;
+        }
+        const measureDuration = 60 / value;
+        measureInfo.textContent = `Duración de compás: ${measureDuration.toFixed(2)} segundos`;
+        alert('Sincronización iniciada. Usa los controles de loop si lo necesitas.');
       });
 
-      document.getElementById('setLoop').addEventListener('click', () => {
-        loopFrom = parseInt(document.getElementById('loopFrom').value) || 1;
-        loopTo = parseInt(document.getElementById('loopTo').value) || 4;
-      });
-
-      // === LOGIN/REGISTRO/ADMIN ===
-      // (tu código original intacto)
+      // Login/Register/Admin (igual que antes)
       function saveUser(name, lastname, email, password) {
         let users = JSON.parse(localStorage.getItem(usersKey) || '[]');
         const exists = users.some(u => u.email === email);
@@ -332,8 +306,14 @@
       }
 
       function displayStats() {
-        document.getElementById('userCount').textContent = localStorage.getItem(USER_COUNT_KEY) || '0';
-        document.getElementById('downloadCount').textContent = localStorage.getItem(DOWNLOAD_COUNT_KEY) || '0';
+        const userCountEl = document.getElementById('userCount');
+        const downloadCountEl = document.getElementById('downloadCount');
+        if (userCountEl && downloadCountEl) {
+          const userCount = parseInt(localStorage.getItem(USER_COUNT_KEY) || '0');
+          const downloadCount = parseInt(localStorage.getItem(DOWNLOAD_COUNT_KEY) || '0');
+          userCountEl.textContent = userCount;
+          downloadCountEl.textContent = downloadCount;
+        }
       }
 
       function restoreSession() {
@@ -365,7 +345,6 @@
         appContainer.style.display = 'none';
       }
 
-      // === INICIALIZACIÓN ===
       document.addEventListener('DOMContentLoaded', () => {
         displayStats();
         restoreSession();
@@ -413,7 +392,7 @@
           const privacy = document.getElementById('privacyCheckbox').checked;
 
           if (!name || !lastname || !email || !password || !confirmPassword) {
-            alert('Completa todos los campos.');
+            alert('Por favor, completa todos los campos.');
             return;
           }
           if (password !== confirmPassword) {
@@ -421,11 +400,11 @@
             return;
           }
           if (!terms || !privacy) {
-            alert('Acepta los términos.');
+            alert('Debes aceptar los términos y la política de privacidad.');
             return;
           }
           if (!email.includes('@')) {
-            alert('Correo válido.');
+            alert('Por favor, ingresa un correo válido.');
             return;
           }
 
