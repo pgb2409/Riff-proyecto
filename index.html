@@ -64,13 +64,19 @@
       position: relative;
       background: #1e1e1e;
     }
-    #scoreContent {
+    #sheet-embed {
+      width: 100%;
+      height: 100%;
+      display: none;
+      border: none;
+    }
+    #sheet-img {
       width: 100%;
       height: 100%;
       object-fit: contain;
       display: none;
     }
-    #highlightOverlay {
+    #highlight-overlay {
       position: absolute;
       top: 0;
       left: 0;
@@ -128,11 +134,11 @@
       
       <audio id="audioPlayer" controls style="width: 100%; margin: 15px 0; background: #2c243a; padding: 10px; border-radius: 6px;"></audio>
       
-      <!-- ✅ Contenedor UNIFICADO para partitura + resaltado -->
+      <!-- ✅ Contenedor de partitura con overlay anclado -->
       <div id="scoreContainer">
         <embed id="sheet-embed" type="application/pdf" style="width:100%; height:100%; display:none; border:none;" />
         <img id="sheet-img" style="width:100%; height:100%; object-fit:contain; display:none;" />
-        <div id="highlightOverlay"></div>
+        <div id="highlight-overlay"></div>
       </div>
     </div>
 
@@ -147,7 +153,7 @@
     Compás: <span id="measureNumber">0</span>
   </div>
 
-  <!-- PDF.js (solo para fallback si embed falla) -->
+  <!-- PDF.js -->
   <script src="pdfjs/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdfjs/pdf.worker.min.js';</script>
 
@@ -193,7 +199,6 @@
       const url = URL.createObjectURL(currentScoreFile);
 
       if (currentScoreFile.type === 'application/pdf') {
-        // Intentar primero con <embed> (más simple y estable)
         sheetEmbed.src = url;
         sheetEmbed.style.display = 'block';
       } else if (currentScoreFile.type.startsWith('image/')) {
@@ -209,28 +214,53 @@
       currentInstrument = instrumentSelect.value;
     });
 
-    // === ✅ NUEVA FUNCIÓN: Resaltado anclado al contenido real ===
-    function highlightMeasure(measureIndex, totalMeasures = 12) {
-      const overlay = document.getElementById('highlightOverlay');
+    // === ✅ NUEVA FUNCIÓN: Resaltado ANCLADO EXACTAMENTE A LA PARTITURA REAL ===
+    function highlightMeasure(measureIndex) {
+      const overlay = document.getElementById('highlight-overlay');
       overlay.innerHTML = '';
+
+      // ✅ Obtenemos el elemento visible real (PDF o imagen)
+      const content = sheetEmbed.style.display !== 'none'
+        ? sheetEmbed
+        : sheetImg.style.display !== 'none'
+          ? sheetImg
+          : null;
+
+      if (!content) return;
+
+      // ✅ Medimos el contenedor y el contenido real
+      const containerRect = document.getElementById('scoreContainer').getBoundingClientRect();
+      const contentRect = content.getBoundingClientRect();
+
+      // ✅ Calculamos desplazamientos relativos al contenedor
+      const leftOffset = contentRect.left - containerRect.left;
+      const topOffset = contentRect.top - containerRect.top;
+      const contentWidth = contentRect.width;
+      const contentHeight = contentRect.height;
+
+      // ✅ Total de compases: ajusta esto si sabes cuántos hay en tu partitura
+      const totalMeasures = 12; // Cambia este valor si tienes más o menos compases
 
       if (measureIndex < 0 || measureIndex >= totalMeasures) return;
 
-      const measureHeightPercent = 100 / totalMeasures;
-      const topPercent = measureIndex * measureHeightPercent;
+      // ✅ Altura de cada compás dentro del contenido real
+      const measureHeight = contentHeight / totalMeasures;
+      const top = topOffset + measureIndex * measureHeight;
 
+      // ✅ Creamos el resaltado con bordes precisos
       const highlight = document.createElement('div');
       highlight.style.position = 'absolute';
-      highlight.style.left = '0';
-      highlight.style.right = '0';
-      highlight.style.top = topPercent + '%';
-      highlight.style.height = measureHeightPercent + '%';
+      highlight.style.left = leftOffset + 'px';
+      highlight.style.top = top + 'px';
+      highlight.style.width = contentWidth + 'px';
+      highlight.style.height = measureHeight + 'px';
       highlight.style.backgroundColor = 'rgba(0, 120, 255, 0.4)';
+      highlight.style.border = '2px solid rgba(0, 180, 255, 0.7)';
       highlight.style.zIndex = '10';
       overlay.appendChild(highlight);
     }
 
-    // === Calcular compás actual (simple para compases uniformes) ===
+    // === Calcular compás actual ===
     function calculateCurrentMeasure(currentTime, bpm) {
       const measureDuration = 60 / bpm;
       return Math.floor(currentTime / measureDuration);
