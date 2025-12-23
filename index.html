@@ -52,7 +52,7 @@
       cursor: pointer;
     }
     #scoreContainer {
-      min-height: 400px; /* ✅ Aumentado para ver más */
+      height: 500px; /* ✅ Altura fija para llenar el espacio */
       margin: 15px 0;
       border: 1px dashed #555;
       border-radius: 8px;
@@ -60,13 +60,16 @@
       align-items: center;
       justify-content: center;
       color: #aaa;
-      overflow: auto; /* ✅ Permite scroll si es necesario */
+      overflow: hidden; /* ✅ Sin scroll, todo dentro */
+      position: relative; /* ✅ Para anclar el overlay */
     }
     #scoreContainer img, #scoreContainer embed {
       max-width: 100%;
+      max-height: 100%; /* ✅ Llena el contenedor */
+      width: auto;
       height: auto;
-      border-radius: 4px;
-      display: block; /* ✅ Asegura que el PDF se centre */
+      object-fit: contain; /* ✅ Ajusta sin deformar */
+      display: block;
     }
     #currentMeasureIndicator {
       position: fixed;
@@ -171,7 +174,7 @@
             embed.src = url;
             embed.type = 'application/pdf';
             embed.width = '100%';
-            embed.height = '800px'; /* ✅ Altura fija para ver más */
+            embed.height = '100%'; /* ✅ Llena el contenedor */
             scoreContainer.innerHTML = '';
             scoreContainer.appendChild(embed);
           } catch (e) {
@@ -182,7 +185,10 @@
           const img = document.createElement('img');
           img.src = url;
           img.style.maxWidth = '100%';
+          img.style.maxHeight = '100%';
+          img.style.width = 'auto';
           img.style.height = 'auto';
+          img.style.objectFit = 'contain'; /* ✅ Ajusta sin deformar */
           scoreContainer.innerHTML = '';
           scoreContainer.appendChild(img);
         } else {
@@ -196,33 +202,29 @@
       currentInstrument = instrumentSelect.value;
     });
 
-    // ✅ FUNCIÓN CORREGIDA: Crear overlay en la posición exacta
+    // ✅ FUNCIÓN CORREGIDA: Overlay anclado al contenedor
     function createOverlay() {
+      // Eliminar overlay anterior si existe
       if (overlayCanvas) {
-        document.body.removeChild(overlayCanvas);
+        if (overlayCanvas.parentNode) {
+          overlayCanvas.parentNode.removeChild(overlayCanvas);
+        }
         overlayCanvas = null;
       }
-      
-      // Esperar a que el contenido se cargue
-      setTimeout(() => {
-        const container = scoreContainer;
-        const content = container.querySelector('img, embed');
-        if (!content) return;
-        
-        const rect = content.getBoundingClientRect();
-        overlayCanvas = document.createElement('canvas');
-        overlayCanvas.width = rect.width;
-        overlayCanvas.height = rect.height;
-        overlayCanvas.style.position = 'fixed';
-        overlayCanvas.style.left = rect.left + 'px';
-        overlayCanvas.style.top = rect.top + 'px';
-        overlayCanvas.style.pointerEvents = 'none';
-        overlayCanvas.style.zIndex = '1000';
-        document.body.appendChild(overlayCanvas);
-      }, 100);
+
+      // Crear nuevo overlay dentro del contenedor
+      overlayCanvas = document.createElement('canvas');
+      overlayCanvas.width = scoreContainer.clientWidth;
+      overlayCanvas.height = scoreContainer.clientHeight;
+      overlayCanvas.style.position = 'absolute';
+      overlayCanvas.style.top = '0';
+      overlayCanvas.style.left = '0';
+      overlayCanvas.style.pointerEvents = 'none';
+      overlayCanvas.style.zIndex = '10';
+      scoreContainer.appendChild(overlayCanvas);
     }
 
-    // ✅ FUNCIÓN CORREGIDA: Resaltar en la posición correcta
+    // ✅ FUNCIÓN CORREGIDA: Resaltar dentro del contenedor
     function highlightMeasure(index) {
       if (!overlayCanvas) return;
       const ctx = overlayCanvas.getContext('2d');
@@ -243,7 +245,7 @@
     function startSync() {
       document.getElementById('currentMeasureIndicator').style.display = 'block';
       measureDuration = 60 / bpm;
-      createOverlay(); // ✅ Se llama después de cargar
+      createOverlay(); // ✅ Overlay dentro del contenedor
       
       if (syncInterval) clearInterval(syncInterval);
       syncInterval = setInterval(() => {
