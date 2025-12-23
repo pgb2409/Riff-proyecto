@@ -52,7 +52,7 @@
       cursor: pointer;
     }
     #scoreContainer {
-      min-height: 300px;
+      min-height: 400px; /* ✅ Aumentado para ver más */
       margin: 15px 0;
       border: 1px dashed #555;
       border-radius: 8px;
@@ -60,11 +60,13 @@
       align-items: center;
       justify-content: center;
       color: #aaa;
+      overflow: auto; /* ✅ Permite scroll si es necesario */
     }
     #scoreContainer img, #scoreContainer embed {
       max-width: 100%;
       height: auto;
       border-radius: 4px;
+      display: block; /* ✅ Asegura que el PDF se centre */
     }
     #currentMeasureIndicator {
       position: fixed;
@@ -169,7 +171,7 @@
             embed.src = url;
             embed.type = 'application/pdf';
             embed.width = '100%';
-            embed.height = '500px';
+            embed.height = '800px'; /* ✅ Altura fija para ver más */
             scoreContainer.innerHTML = '';
             scoreContainer.appendChild(embed);
           } catch (e) {
@@ -180,6 +182,7 @@
           const img = document.createElement('img');
           img.src = url;
           img.style.maxWidth = '100%';
+          img.style.height = 'auto';
           scoreContainer.innerHTML = '';
           scoreContainer.appendChild(img);
         } else {
@@ -193,22 +196,33 @@
       currentInstrument = instrumentSelect.value;
     });
 
-    // Crear overlay de resaltado
+    // ✅ FUNCIÓN CORREGIDA: Crear overlay en la posición exacta
     function createOverlay() {
-      if (overlayCanvas) return;
-      const rect = scoreContainer.getBoundingClientRect();
-      overlayCanvas = document.createElement('canvas');
-      overlayCanvas.width = rect.width;
-      overlayCanvas.height = rect.height;
-      overlayCanvas.style.position = 'fixed';
-      overlayCanvas.style.left = rect.left + 'px';
-      overlayCanvas.style.top = rect.top + 'px';
-      overlayCanvas.style.pointerEvents = 'none';
-      overlayCanvas.style.zIndex = '1000';
-      document.body.appendChild(overlayCanvas);
+      if (overlayCanvas) {
+        document.body.removeChild(overlayCanvas);
+        overlayCanvas = null;
+      }
+      
+      // Esperar a que el contenido se cargue
+      setTimeout(() => {
+        const container = scoreContainer;
+        const content = container.querySelector('img, embed');
+        if (!content) return;
+        
+        const rect = content.getBoundingClientRect();
+        overlayCanvas = document.createElement('canvas');
+        overlayCanvas.width = rect.width;
+        overlayCanvas.height = rect.height;
+        overlayCanvas.style.position = 'fixed';
+        overlayCanvas.style.left = rect.left + 'px';
+        overlayCanvas.style.top = rect.top + 'px';
+        overlayCanvas.style.pointerEvents = 'none';
+        overlayCanvas.style.zIndex = '1000';
+        document.body.appendChild(overlayCanvas);
+      }, 100);
     }
 
-    // Resaltar compás
+    // ✅ FUNCIÓN CORREGIDA: Resaltar en la posición correcta
     function highlightMeasure(index) {
       if (!overlayCanvas) return;
       const ctx = overlayCanvas.getContext('2d');
@@ -229,7 +243,7 @@
     function startSync() {
       document.getElementById('currentMeasureIndicator').style.display = 'block';
       measureDuration = 60 / bpm;
-      createOverlay();
+      createOverlay(); // ✅ Se llama después de cargar
       
       if (syncInterval) clearInterval(syncInterval);
       syncInterval = setInterval(() => {
