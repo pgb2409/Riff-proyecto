@@ -63,10 +63,20 @@
       overflow: hidden;
       position: relative;
     }
-    #scoreCanvas {
+    #scoreContainer img,
+    #scoreContainer embed {
       max-width: 100%;
       max-height: 100%;
-      display: block;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+    }
+    #highlightOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 10;
     }
     #currentMeasureIndicator {
       position: fixed;
@@ -117,7 +127,7 @@
       
       <audio id="audioPlayer" controls style="width: 100%; margin: 15px 0; background: #2c243a; padding: 10px; border-radius: 6px;"></audio>
       <div id="scoreContainer">
-        <canvas id="scoreCanvas"></canvas>
+        <div id="highlightOverlay"></div>
       </div>
     </div>
 
@@ -132,7 +142,7 @@
     Compás: <span id="measureNumber">0</span>
   </div>
 
-  <!-- PDF.js -->
+  <!-- PDF.js (solo para fallback) -->
   <script src="pdfjs/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdfjs/pdf.worker.min.js';</script>
 
@@ -145,8 +155,7 @@
     let bpm = 120;
     let measureDuration = 60 / bpm;
     let syncInterval = null;
-    let canvas = document.getElementById('scoreCanvas');
-    let ctx = canvas.getContext('2d');
+    let lastContentRect = null;
 
     // Elementos
     const audioFileInput = document.getElementById('audioFile');
@@ -154,6 +163,8 @@
     const instrumentSelect = document.getElementById('instrumentSelect');
     const startPracticeBtn = document.getElementById('startPractice');
     const audioPlayer = document.getElementById('audioPlayer');
+    const scoreContainer = document.getElementById('scoreContainer');
+    const highlightOverlay = document.getElementById('highlightOverlay');
     const measureNumberEl = document.getElementById('measureNumber');
 
     // Cargar audio
@@ -165,56 +176,46 @@
       }
     });
 
-    // ✅ Cargar partitura EN CANVAS (clave del anclaje)
-    scoreFileInput.addEventListener('change', async (e) => {
+    // ✅ Cargar partitura con <embed> para PDF (funciona siempre)
+    scoreFileInput.addEventListener('change', (e) => {
       currentScoreFile = e.target.files[0];
       if (!currentScoreFile) return;
       
-      const canvas = document.getElementById('scoreCanvas');
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Limpiar contenedor
+      const contentElements = scoreContainer.querySelectorAll('img, embed');
+      contentElements.forEach(el => el.remove());
       
       if (currentScoreFile.type === 'application/pdf') {
         try {
-          const arrayBuffer = await currentScoreFile.arrayBuffer();
-          const typedarray = new Uint8Array(arrayBuffer);
-          const pdf = await pdfjsLib.getDocument(typedarray).promise;
-          const page = await pdf.getPage(1);
-          
-          // Ajustar canvas al contenedor
-          const container = document.getElementById('scoreContainer');
-          const scale = Math.min(
-            container.clientWidth / page.getViewport({ scale: 1 }).width,
-            container.clientHeight / page.getViewport({ scale: 1 }).height
-          );
-          
-          const viewport = page.getViewport({ scale });
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          
-          await page.render({ canvasContext: ctx, viewport }).promise;
+          const url = URL.createObjectURL(currentScoreFile);
+          const embed = document.createElement('embed');
+          embed.src = url;
+          embed.type = 'application/pdf';
+          embed.width = '100%';
+          embed.height = '100%';
+          embed.style.border = 'none';
+          scoreContainer.insertBefore(embed, highlightOverlay);
         } catch (e) {
-          ctx.fillStyle = '#ff6b6b';
-          ctx.font = '16px Arial';
-          ctx.fillText('Error al cargar PDF', 10, 30);
+          const error = document.createElement('p');
+          error.style.color = '#ff6b6b';
+          error.textContent = 'Error al cargar PDF';
+          scoreContainer.insertBefore(error, highlightOverlay);
         }
       } else if (currentScoreFile.type.startsWith('image/')) {
-        const img = new Image();
-        img.onload = () => {
-          const container = document.getElementById('scoreContainer');
-          const scaleX = container.clientWidth / img.width;
-          const scaleY = container.clientHeight / img.height;
-          const scale = Math.min(scaleX, scaleY);
-          
-          canvas.width = img.width * scale;
-          canvas.height = img.height * scale;
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        };
-        img.src = URL.createObjectURL(currentScoreFile);
+        const url = URL.createObjectURL(currentScoreFile);
+        const img = document.createElement('img');
+        img.src = url;
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '100%';
+        img.style.width = 'auto';
+        img.style.height = 'auto';
+        img.style.objectFit = 'contain';
+        scoreContainer.insertBefore(img, highlightOverlay);
       } else {
-        ctx.fillStyle = '#ff6b6b';
-        ctx.font = '16px Arial';
-        ctx.fillText('Formato no soportado', 10, 30);
+        const error = document.createElement('p');
+        error.style.color = '#ff6b6b';
+        error.textContent = 'Formato no soportado';
+        scoreContainer.insertBefore(error, highlightOverlay);
       }
     });
 
@@ -223,32 +224,58 @@
       currentInstrument = instrumentSelect.value;
     });
 
-    // ✅ RESALTADO DIRECTO EN EL CANVAS (100% anclado)
-    function highlightMeasure(index) {
-      const canvas = document.getElementById('scoreCanvas');
-      const ctx = canvas.getContext('2d');
+    // ✅ ACTUALIZAR POSICIÓN DEL OVERLAY CADA VEZ QUE SE DIBUJA
+    function updateOverlayPosition() {
+      const content = scoreContainer.querySelector('img, embed');
+      if (!content) {
+        highlightOverlay.style.display = 'none';
+        lastContentRect = null;
+        return;
+      }
       
-      // Restaurar partitura (necesario para no acumular resaltados)
-      if (currentScoreFile) {
-        scoreFileInput.dispatchEvent(new Event('change'));
-        // Esperar un frame para que se redibuje
-        setTimeout(() => {
-          const measuresPerLine = 4;
-          const measureWidth = canvas.width / measuresPerLine;
-          const lineHeight = canvas.height * 0.2;
-          const line = Math.floor(index / measuresPerLine);
-          const col = index % measuresPerLine;
-          
-          if (line * lineHeight < canvas.height) {
-            ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
-            ctx.fillRect(
-              col * measureWidth,
-              line * lineHeight,
-              measureWidth,
-              lineHeight
-            );
-          }
-        }, 0);
+      const rect = content.getBoundingClientRect();
+      const containerRect = scoreContainer.getBoundingClientRect();
+      
+      // Guardar para usar en el resaltado
+      lastContentRect = {
+        width: rect.width,
+        height: rect.height,
+        left: rect.left - containerRect.left,
+        top: rect.top - containerRect.top
+      };
+      
+      highlightOverlay.style.display = 'block';
+      highlightOverlay.style.width = rect.width + 'px';
+      highlightOverlay.style.height = rect.height + 'px';
+      highlightOverlay.style.left = (rect.left - containerRect.left) + 'px';
+      highlightOverlay.style.top = (rect.top - containerRect.top) + 'px';
+    }
+
+    // ✅ RESALTADO ANCLADO A LA POSICIÓN ACTUAL DE LA PARTITURA
+    function highlightMeasure(index) {
+      // Actualizar posición primero
+      updateOverlayPosition();
+      
+      if (!lastContentRect) return;
+      
+      // Limpiar overlay
+      highlightOverlay.innerHTML = '';
+      
+      const measuresPerLine = 4;
+      const measureWidth = lastContentRect.width / measuresPerLine;
+      const lineHeight = lastContentRect.height * 0.2;
+      const line = Math.floor(index / measuresPerLine);
+      const col = index % measuresPerLine;
+      
+      if (line * lineHeight < lastContentRect.height) {
+        const div = document.createElement('div');
+        div.style.position = 'absolute';
+        div.style.left = (col * measureWidth) + 'px';
+        div.style.top = (line * lineHeight) + 'px';
+        div.style.width = measureWidth + 'px';
+        div.style.height = lineHeight + 'px';
+        div.style.background = 'rgba(255, 255, 0, 0.3)';
+        highlightOverlay.appendChild(div);
       }
     }
 
@@ -274,10 +301,11 @@
         return;
       }
       startSync();
-      alert('¡Práctica iniciada! La partitura se resaltará automáticamente.');
+      // Asegurar que el overlay está posicionado
+      setTimeout(updateOverlayPosition, 100);
     });
 
-    // === Login/Register/Admin (tu código original) ===
+    // === Login/Register/Admin (tu código original SIN CAMBIOS) ===
     const usersKey = 'musicApp_users';
     const currentUserKey = 'musicApp_currentUser';
     const USER_COUNT_KEY = 'musicApp_userCount';
