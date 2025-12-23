@@ -63,12 +63,10 @@
       overflow: hidden;
       position: relative;
     }
-    #scoreContainer img,
-    #scoreContainer embed {
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: contain;
-      border: none;
+    #scoreCanvas {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
     }
     #currentMeasureIndicator {
       position: fixed;
@@ -118,7 +116,9 @@
       </select>
       
       <audio id="audioPlayer" controls style="width: 100%; margin: 15px 0; background: #2c243a; padding: 10px; border-radius: 6px;"></audio>
-      <div id="scoreContainer">Sube tu partitura para verla aquí</div>
+      <div id="scoreContainer">
+        <canvas id="scoreCanvas"></canvas>
+      </div>
     </div>
 
     <div class="section">
@@ -132,6 +132,10 @@
     Compás: <span id="measureNumber">0</span>
   </div>
 
+  <!-- PDF.js -->
+  <script src="pdfjs/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdfjs/pdf.worker.min.js';</script>
+
   <script>
     // Estado
     let currentAudioFile = null;
@@ -141,7 +145,8 @@
     let bpm = 120;
     let measureDuration = 60 / bpm;
     let syncInterval = null;
-    let overlayCanvas = null;
+    let canvas = document.getElementById('scoreCanvas');
+    let ctx = canvas.getContext('2d');
 
     // Elementos
     const audioFileInput = document.getElementById('audioFile');
@@ -149,7 +154,6 @@
     const instrumentSelect = document.getElementById('instrumentSelect');
     const startPracticeBtn = document.getElementById('startPractice');
     const audioPlayer = document.getElementById('audioPlayer');
-    const scoreContainer = document.getElementById('scoreContainer');
     const measureNumberEl = document.getElementById('measureNumber');
 
     // Cargar audio
@@ -161,33 +165,56 @@
       }
     });
 
-    // Cargar partitura
-    scoreFileInput.addEventListener('change', (e) => {
+    // ✅ Cargar partitura EN CANVAS (clave del anclaje)
+    scoreFileInput.addEventListener('change', async (e) => {
       currentScoreFile = e.target.files[0];
-      if (currentScoreFile) {
-        scoreContainer.innerHTML = '<p>Cargando partitura...</p>';
-        if (currentScoreFile.type === 'application/pdf') {
-          try {
-            const url = URL.createObjectURL(currentScoreFile);
-            const embed = document.createElement('embed');
-            embed.src = url;
-            embed.type = 'application/pdf';
-            embed.id = 'scoreContent'; // ✅ ID para referencia
-            scoreContainer.innerHTML = '';
-            scoreContainer.appendChild(embed);
-          } catch (e) {
-            scoreContainer.innerHTML = '<p style="color:#ff6b6b;">Error al cargar PDF.</p>';
-          }
-        } else if (currentScoreFile.type.startsWith('image/')) {
-          const url = URL.createObjectURL(currentScoreFile);
-          const img = document.createElement('img');
-          img.src = url;
-          img.id = 'scoreContent'; // ✅ ID para referencia
-          scoreContainer.innerHTML = '';
-          scoreContainer.appendChild(img);
-        } else {
-          scoreContainer.innerHTML = '<p style="color:#ff6b6b;">Formato no soportado.</p>';
+      if (!currentScoreFile) return;
+      
+      const canvas = document.getElementById('scoreCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      if (currentScoreFile.type === 'application/pdf') {
+        try {
+          const arrayBuffer = await currentScoreFile.arrayBuffer();
+          const typedarray = new Uint8Array(arrayBuffer);
+          const pdf = await pdfjsLib.getDocument(typedarray).promise;
+          const page = await pdf.getPage(1);
+          
+          // Ajustar canvas al contenedor
+          const container = document.getElementById('scoreContainer');
+          const scale = Math.min(
+            container.clientWidth / page.getViewport({ scale: 1 }).width,
+            container.clientHeight / page.getViewport({ scale: 1 }).height
+          );
+          
+          const viewport = page.getViewport({ scale });
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          
+          await page.render({ canvasContext: ctx, viewport }).promise;
+        } catch (e) {
+          ctx.fillStyle = '#ff6b6b';
+          ctx.font = '16px Arial';
+          ctx.fillText('Error al cargar PDF', 10, 30);
         }
+      } else if (currentScoreFile.type.startsWith('image/')) {
+        const img = new Image();
+        img.onload = () => {
+          const container = document.getElementById('scoreContainer');
+          const scaleX = container.clientWidth / img.width;
+          const scaleY = container.clientHeight / img.height;
+          const scale = Math.min(scaleX, scaleY);
+          
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        };
+        img.src = URL.createObjectURL(currentScoreFile);
+      } else {
+        ctx.fillStyle = '#ff6b6b';
+        ctx.font = '16px Arial';
+        ctx.fillText('Formato no soportado', 10, 30);
       }
     });
 
@@ -196,56 +223,32 @@
       currentInstrument = instrumentSelect.value;
     });
 
-    // ✅ FUNCIÓN CORREGIDA: Overlay anclado a la partitura real
-    function createOverlay() {
-      if (overlayCanvas) {
-        if (overlayCanvas.parentNode) {
-          overlayCanvas.parentNode.removeChild(overlayCanvas);
-        }
-        overlayCanvas = null;
-      }
-
-      // ✅ Buscar la partitura real (img o embed)
-      const content = document.getElementById('scoreContent');
-      if (!content) return;
-
-      // ✅ Crear overlay dentro del contenedor, pero posicionado sobre la partitura
-      overlayCanvas = document.createElement('canvas');
-      overlayCanvas.style.position = 'absolute';
-      overlayCanvas.style.pointerEvents = 'none';
-      overlayCanvas.style.zIndex = '10';
-      scoreContainer.appendChild(overlayCanvas);
-
-      // ✅ Ajustar tamaño al de la partitura real
-      const rect = content.getBoundingClientRect();
-      const containerRect = scoreContainer.getBoundingClientRect();
-      
-      overlayCanvas.width = rect.width;
-      overlayCanvas.height = rect.height;
-      overlayCanvas.style.left = (rect.left - containerRect.left) + 'px';
-      overlayCanvas.style.top = (rect.top - containerRect.top) + 'px';
-    }
-
-    // ✅ FUNCIÓN CORREGIDA: Resaltar sobre la partitura real
+    // ✅ RESALTADO DIRECTO EN EL CANVAS (100% anclado)
     function highlightMeasure(index) {
-      if (!overlayCanvas) return;
-      const ctx = overlayCanvas.getContext('2d');
-      ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+      const canvas = document.getElementById('scoreCanvas');
+      const ctx = canvas.getContext('2d');
       
-      const measuresPerLine = 4;
-      const measureWidth = overlayCanvas.width / measuresPerLine;
-      const lineHeight = overlayCanvas.height * 0.2;
-      const line = Math.floor(index / measuresPerLine);
-      const col = index % measuresPerLine;
-      
-      if (line * lineHeight < overlayCanvas.height) {
-        ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
-        ctx.fillRect(
-          col * measureWidth,
-          line * lineHeight,
-          measureWidth,
-          lineHeight
-        );
+      // Restaurar partitura (necesario para no acumular resaltados)
+      if (currentScoreFile) {
+        scoreFileInput.dispatchEvent(new Event('change'));
+        // Esperar un frame para que se redibuje
+        setTimeout(() => {
+          const measuresPerLine = 4;
+          const measureWidth = canvas.width / measuresPerLine;
+          const lineHeight = canvas.height * 0.2;
+          const line = Math.floor(index / measuresPerLine);
+          const col = index % measuresPerLine;
+          
+          if (line * lineHeight < canvas.height) {
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+            ctx.fillRect(
+              col * measureWidth,
+              line * lineHeight,
+              measureWidth,
+              lineHeight
+            );
+          }
+        }, 0);
       }
     }
 
@@ -253,7 +256,6 @@
     function startSync() {
       document.getElementById('currentMeasureIndicator').style.display = 'block';
       measureDuration = 60 / bpm;
-      createOverlay(); // ✅ Se llama después de cargar
       
       if (syncInterval) clearInterval(syncInterval);
       syncInterval = setInterval(() => {
@@ -273,6 +275,166 @@
       }
       startSync();
       alert('¡Práctica iniciada! La partitura se resaltará automáticamente.');
+    });
+
+    // === Login/Register/Admin (tu código original) ===
+    const usersKey = 'musicApp_users';
+    const currentUserKey = 'musicApp_currentUser';
+    const USER_COUNT_KEY = 'musicApp_userCount';
+    const DOWNLOAD_COUNT_KEY = 'musicApp_downloadCount';
+    const isAdminKey = 'musicApp_isAdmin';
+    const ADMIN_EMAIL = 'admin@mimusicapp.com';
+    const ADMIN_PASSWORD = 'admin123';
+
+    function saveUser(name, lastname, email, password) {
+      let users = JSON.parse(localStorage.getItem(usersKey) || '[]');
+      const exists = users.some(u => u.email === email);
+      if (!exists) {
+        users.push({ name, lastname, email, password });
+        localStorage.setItem(usersKey, JSON.stringify(users));
+        const userCount = parseInt(localStorage.getItem(USER_COUNT_KEY) || '0') + 1;
+        localStorage.setItem(USER_COUNT_KEY, userCount.toString());
+      }
+      localStorage.setItem(currentUserKey, email);
+      return { name, lastname, email };
+    }
+
+    function login(email, password) {
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        localStorage.setItem(isAdminKey, 'true');
+        return { name: 'Administrador', lastname: '', email, admin: true };
+      }
+      const users = JSON.parse(localStorage.getItem(usersKey) || '[]');
+      const user = users.find(u => u.email === email && u.password === password);
+      if (user) {
+        localStorage.setItem(currentUserKey, email);
+        localStorage.removeItem(isAdminKey);
+        return { name: user.name, lastname: user.lastname, email, admin: false };
+      }
+      return null;
+    }
+
+    function displayStats() {
+      const userCountEl = document.getElementById('userCount');
+      const downloadCountEl = document.getElementById('downloadCount');
+      if (userCountEl && downloadCountEl) {
+        const userCount = parseInt(localStorage.getItem(USER_COUNT_KEY) || '0');
+        const downloadCount = parseInt(localStorage.getItem(DOWNLOAD_COUNT_KEY) || '0');
+        userCountEl.textContent = userCount;
+        downloadCountEl.textContent = downloadCount;
+      }
+    }
+
+    function restoreSession() {
+      const isAdmin = localStorage.getItem(isAdminKey) === 'true';
+      const userEmail = localStorage.getItem(currentUserKey);
+      const welcomeScreen = document.querySelector('.screen');
+      const appContainer = document.querySelector('#appContainer');
+      const userNameDisplay = document.getElementById('userNameDisplay');
+
+      if (isAdmin) {
+        userNameDisplay.textContent = 'Administrador';
+        welcomeScreen.style.display = 'none';
+        appContainer.style.display = 'block';
+        setTimeout(() => {
+          appContainer.style.display = 'none';
+          welcomeScreen.style.display = 'flex';
+        }, 100);
+      } else if (userEmail) {
+        const users = JSON.parse(localStorage.getItem(usersKey) || '[]');
+        const user = users.find(u => u.email === userEmail);
+        if (user) {
+          userNameDisplay.textContent = `${user.name} ${user.lastname}`;
+          welcomeScreen.style.display = 'none';
+          appContainer.style.display = 'block';
+          return;
+        }
+      }
+      welcomeScreen.style.display = 'flex';
+      appContainer.style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      displayStats();
+      restoreSession();
+
+      // Login
+      document.getElementById('showLogin')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('loginForm').style.display = 'block';
+      });
+
+      document.getElementById('loginBtn')?.addEventListener('click', () => {
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        const user = login(email, password);
+        if (user) {
+          if (user.admin) {
+            document.getElementById('userNameDisplay').textContent = 'Administrador';
+            document.querySelector('#welcomeScreen').style.display = 'none';
+            document.querySelector('#appContainer').style.display = 'block';
+            setTimeout(() => {
+              document.querySelector('#appContainer').style.display = 'none';
+              document.querySelector('#welcomeScreen').style.display = 'flex';
+              document.getElementById('loginEmail').value = '';
+              document.getElementById('loginPassword').value = '';
+            }, 100);
+          } else {
+            document.getElementById('userNameDisplay').textContent = `${user.name} ${user.lastname}`;
+            document.querySelector('#welcomeScreen').style.display = 'none';
+            document.querySelector('#appContainer').style.display = 'block';
+          }
+        } else {
+          alert('Correo o contraseña incorrectos.');
+        }
+      });
+
+      // Registro
+      document.getElementById('registerBtn')?.addEventListener('click', () => {
+        const name = document.getElementById('regName').value.trim();
+        const lastname = document.getElementById('regLastname').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
+        const password = document.getElementById('regPassword').value;
+        const confirmPassword = document.getElementById('regConfirmPassword').value;
+        const terms = document.getElementById('termsCheckbox').checked;
+        const privacy = document.getElementById('privacyCheckbox').checked;
+
+        if (!name || !lastname || !email || !password || !confirmPassword) {
+          alert('Por favor, completa todos los campos.');
+          return;
+        }
+        if (password !== confirmPassword) {
+          alert('Las contraseñas no coinciden.');
+          return;
+        }
+        if (!terms || !privacy) {
+          alert('Debes aceptar los términos y la política de privacidad.');
+          return;
+        }
+        if (!email.includes('@')) {
+          alert('Por favor, ingresa un correo válido.');
+          return;
+        }
+
+        const user = saveUser(name, lastname, email, password);
+        document.getElementById('userNameDisplay').textContent = `${user.name} ${user.lastname}`;
+        document.querySelector('#welcomeScreen').style.display = 'none';
+        document.querySelector('#appContainer').style.display = 'block';
+      });
+
+      document.getElementById('showRegister')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'block';
+      });
+
+      document.getElementById('backToWelcome')?.addEventListener('click', () => {
+        localStorage.removeItem(currentUserKey);
+        localStorage.removeItem(isAdminKey);
+        document.querySelector('#appContainer').style.display = 'none';
+        document.querySelector('#welcomeScreen').style.display = 'flex';
+      });
     });
   </script>
 </body>
