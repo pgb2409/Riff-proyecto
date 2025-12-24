@@ -9,40 +9,47 @@
 <body>
   <h1>Domina tu instrumento</h1>
 
-  <!-- Audio -->
-  <input type="file" id="audioFile" accept="audio/mp3,audio/mp4,video/mp4" />
+  <!-- Paso 1: Subir MP3 -->
+  <div class="section">
+    <label>1. Sube tu archivo de audio (MP3 o MP4):</label>
+    <input type="file" id="audioFile" accept="audio/mp3,audio/mp4,video/mp4" required />
+  </div>
+
+  <!-- Paso 2: Subir PDF -->
+  <div class="section">
+    <label>2. Sube tu partitura (PDF):</label>
+    <input type="file" id="scoreFile" accept=".pdf" required />
+  </div>
+
+  <!-- Paso 3: Elegir instrumento -->
+  <div class="section">
+    <label>3. Elige tu instrumento:</label>
+    <select id="instrument">
+      <option value="piano">Piano</option>
+      <option value="guitarra">Guitarra</option>
+      <option value="voz">Voz</option>
+      <option value="violin">Violín</option>
+      <option value="flauta">Flauta</option>
+    </select>
+  </div>
+
+  <!-- Controles de audio -->
   <div id="audioControls" style="display:none;">
     <button id="playPause">▶ Reproducir</button>
     <button id="adjustMinus">–0.2s</button>
-    <input type="number" id="offsetInput" value="0" step="0.1" />
+    <input type="number" id="offsetInput" value="0" step="0.1" style="width:60px;" />
     <button id="adjustPlus">+0.2s</button>
     <span id="timeDisplay">0:00 / 0:00</span>
+    <span id="currentMeasure" style="margin-left:15px; color:#ffcc00;">Compás: 0</span>
   </div>
 
-  <!-- Partitura -->
-  <input type="file" id="scoreFile" accept=".pdf,.jpg,.jpeg,.png" />
-  <div id="scoreContainer" style="position: relative; width: 100%; text-align: center; margin-top: 20px;"></div>
-
-  <!-- Controles en vivo -->
-  <div id="liveControls" style="display:none; margin-top: 20px;">
-    <button id="prev2">&lt;&lt; 2</button>
-    <button id="prev1">&lt; 1</button>
-    <span id="currentMeasure">Compás: 0</span>
-    <button id="next1">1 &gt;</button>
-    <button id="next2">2 &gt;&gt;</button>
-    
-    <div style="margin-top:10px;">
-      Loop: 
-      <input type="number" id="loopStart" min="0" value="0" /> – 
-      <input type="number" id="loopEnd" min="0" value="0" />
-      <button id="saveLoop">Guardar loop</button>
-    </div>
-  </div>
+  <!-- Contenedor del PDF -->
+  <div id="scoreContainer" style="position: relative; display: inline-block; margin-top:20px;"></div>
 
   <!-- PDF.js -->
   <script src="pdfjs/pdf.min.js"></script>
   <script>
-    pdfjsGlobal.workerSrc = 'pdfjs/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdfjs/pdf.worker.min.js';
   </script>
   <script src="script.js"></script>
 </body>
