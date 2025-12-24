@@ -45,14 +45,7 @@
   </div>
 
   <!-- Contenedor del PDF -->
-  <div id="scoreContainer" style="position: relative; width:100%; height:600px; margin-top:20px; border:1px solid #444; background:#1a1a2e;">
-    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#666; text-align:center;">
-      Sube un PDF para ver la partitura
-    </div>
-  </div>
-
-  <!-- Overlay de resaltado (encima del PDF) -->
-  <div id="measureHighlightOverlay" style="position:absolute; top:0; left:0; width:0; height:0; pointer-events:none; z-index:10;"></div>
+  <div id="scoreContainer" style="position: relative; width:100%; height:600px; margin-top:20px; border:1px solid #444; background:#1a1a2e;"></div>
 
   <div style="margin-top:20px;">
     <button id="prev2">&lt;&lt; 2</button>
@@ -61,6 +54,11 @@
     <button id="next2">2 &gt;&gt;</button>
   </div>
 
+  <!-- PDF.js -->
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  </script>
   <script src="script.js"></script>
 </body>
 </html>
