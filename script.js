@@ -2,41 +2,50 @@ let audioPlayer = new Audio();
 let currentMeasure = 1;
 let offset = 0;
 let bpm = 120;
+let overlayDiv = null;
 
-// === Cargar PDF con iframe (funciona en todos los navegadores) ===
-document.getElementById('scoreFile').addEventListener('change', (e) => {
+// === Cargar PDF con PDF.js ===
+document.getElementById('scoreFile').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file || file.type !== 'application/pdf') return;
 
-  const url = URL.createObjectURL(file);
   const container = document.getElementById('scoreContainer');
   container.innerHTML = '';
 
-  const iframe = document.createElement('iframe');
-  iframe.src = url;
-  iframe.style.width = '100%';
-  iframe.style.height = '100%';
-  iframe.style.border = 'none';
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ arrayBuffer }).promise;
+  const page = await pdf.getPage(1);
 
-  container.appendChild(iframe);
+  const scale = 1.5;
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  canvas.height = viewport.height;
+  canvas.width = viewport.width;
 
-  // Ajustar overlay al tamaño del contenedor
-  const overlay = document.getElementById('measureHighlightOverlay');
-  const rect = container.getBoundingClientRect();
-  overlay.style.width = rect.width + 'px';
-  overlay.style.height = rect.height + 'px';
-  overlay.style.left = rect.left + 'px';
-  overlay.style.top = rect.top + 'px';
+  await page.render({ canvasContext: context, viewport }).promise;
+  container.appendChild(canvas);
 
-  // Reajustar al cambiar tamaño
-  window.addEventListener('resize', () => {
-    const rect = container.getBoundingClientRect();
-    overlay.style.width = rect.width + 'px';
-    overlay.style.height = rect.height + 'px';
-    overlay.style.left = rect.left + 'px';
-    overlay.style.top = rect.top + 'px';
-  });
+  // Crear overlay encima del canvas
+  createOverlay(canvas);
 });
+
+function createOverlay(canvas) {
+  if (overlayDiv) overlayDiv.remove();
+
+  overlayDiv = document.createElement('div');
+  overlayDiv.id = 'measureHighlightOverlay';
+  overlayDiv.style.position = 'absolute';
+  overlayDiv.style.top = '0';
+  overlayDiv.style.left = '0';
+  overlayDiv.style.width = '100%';
+  overlayDiv.style.height = '100%';
+  overlayDiv.style.pointerEvents = 'none';
+  overlayDiv.style.zIndex = '10';
+
+  canvas.parentNode.style.position = 'relative';
+  canvas.parentNode.appendChild(overlayDiv);
+}
 
 // === Cargar audio ===
 document.getElementById('audioFile').addEventListener('change', (e) => {
@@ -65,10 +74,10 @@ audioPlayer.addEventListener('timeupdate', () => {
   highlightMeasure(currentMeasure);
 });
 
-// === Resaltado del compás (anclado al contenedor del PDF) ===
+// === Resaltado del compás (anclado al canvas) ===
 function highlightMeasure(measure) {
-  const overlay = document.getElementById('measureHighlightOverlay');
-  overlay.innerHTML = '';
+  if (!overlayDiv) return;
+  overlayDiv.innerHTML = '';
 
   if (measure < 1 || measure > 12) return;
 
@@ -77,8 +86,11 @@ function highlightMeasure(measure) {
   const col = (measure - 1) % cols;
   const row = Math.floor((measure - 1) / cols);
 
-  const w = overlay.offsetWidth / cols;
-  const h = overlay.offsetHeight / rows;
+  const canvas = document.querySelector('#scoreContainer canvas');
+  if (!canvas) return;
+
+  const w = canvas.width / cols;
+  const h = canvas.height / rows;
 
   const div = document.createElement('div');
   div.style.position = 'absolute';
@@ -90,7 +102,7 @@ function highlightMeasure(measure) {
   div.style.border = '2px solid gold';
   div.style.boxSizing = 'border-box';
 
-  overlay.appendChild(div);
+  overlayDiv.appendChild(div);
 }
 
 // === Ajuste de sincronización ===
