@@ -1,151 +1,40 @@
-// === Configuración inicial ===
 let audioPlayer = new Audio();
 let currentMeasure = 0;
-let bpm = 120;
 let offset = 0;
-let loopStart = 0;
-let loopEnd = 0;
-let overlayCanvas = null;
-let tempoMap = [120]; // soporte básico para cambios de tempo
+let bpm = 120; // ajustable
+let overlayDiv = null;
 
-// === Guardar/recuperar desde localStorage ===
-function saveState(filename) {
-  if (!filename) return;
-  localStorage.setItem(`${filename}_offset`, offset);
-  localStorage.setItem(`${filename}_loop`, JSON.stringify({ start: loopStart, end: loopEnd }));
-}
-function loadState(filename) {
-  const savedOffset = localStorage.getItem(`${filename}_offset`);
-  if (savedOffset !== null) offset = parseFloat(savedOffset);
-  const savedLoop = localStorage.getItem(`${filename}_loop`);
-  if (savedLoop) {
-    const loop = JSON.parse(savedLoop);
-    loopStart = loop.start;
-    loopEnd = loop.end;
-    document.getElementById('loopStart').value = loopStart;
-    document.getElementById('loopEnd').value = loopEnd;
-  }
-}
-
-// === Cálculo de compás actual ===
-function calculateCurrentMeasure(time) {
-  const adjustedTime = time - offset;
-  if (adjustedTime < 0) return -1;
-  const beats = (adjustedTime * tempoMap[0]) / 60;
-  return Math.floor(beats / 4); // 4/4
-}
-
-// === Overlay anclado al contenido real (PDF o imagen) ===
-function createOverlay() {
-  const container = document.getElementById('scoreContainer');
-  if (!container || container.children.length === 0) return null;
-
-  if (overlayCanvas) overlayCanvas.remove();
-
-  const contentEl = container.firstElementChild;
-  const rect = contentEl.getBoundingClientRect();
-
-  overlayCanvas = document.createElement('canvas');
-  overlayCanvas.id = 'measureHighlightOverlay';
-  overlayCanvas.width = rect.width;
-  overlayCanvas.height = rect.height;
-  overlayCanvas.style.position = 'fixed';
-  overlayCanvas.style.left = rect.left + 'px';
-  overlayCanvas.style.top = rect.top + 'px';
-  overlayCanvas.style.pointerEvents = 'none';
-  overlayCanvas.style.zIndex = '1000';
-
-  document.body.appendChild(overlayCanvas);
-  return rect;
-}
-
-function clearOverlay() {
-  if (!overlayCanvas) return;
-  const ctx = overlayCanvas.getContext('2d');
-  ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-}
-
-function highlightMeasure(measureIndex) {
-  if (measureIndex < 0) {
-    if (overlayCanvas) overlayCanvas.style.display = 'none';
-    return;
-  }
-
-  const rect = createOverlay();
-  if (!overlayCanvas || !rect) return;
-
-  overlayCanvas.style.display = 'block';
-  clearOverlay();
-
-  const ctx = overlayCanvas.getContext('2d');
-
-  // Ajuste visual: asume 4 compases por fila, 3 filas
-  const cols = 4;
-  const rows = 3;
-  const totalMeasures = cols * rows;
-
-  if (measureIndex >= totalMeasures) return;
-
-  const col = measureIndex % cols;
-  const row = Math.floor(measureIndex / cols);
-
-  const w = rect.width / cols;
-  const h = rect.height / rows;
-
-  ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
-  ctx.fillRect(col * w, row * h, w, h);
-
-  ctx.strokeStyle = 'rgba(255, 215, 0, 0.8)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(col * w, row * h, w, h);
-}
-
-// === Carga de partitura ===
+// === Cargar PDF ===
 document.getElementById('scoreFile').addEventListener('change', async (e) => {
   const file = e.target.files[0];
-  if (!file) return;
+  if (!file || file.type !== 'application/pdf') return;
 
   const container = document.getElementById('scoreContainer');
   container.innerHTML = '';
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ arrayBuffer }).promise;
+  const page = await pdf.getPage(1);
 
-  if (file.type === 'application/pdf') {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    const page = await pdf.getPage(1);
-    const scale = 1.5;
-    const viewport = page.getViewport({ scale });
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
-    await page.render({ canvasContext: context, viewport }).promise;
-    container.appendChild(canvas);
-  } else {
-    const img = document.createElement('img');
-    img.src = URL.createObjectURL(file);
-    container.appendChild(img);
-  }
+  const scale = 1.5;
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  canvas.height = viewport.height;
+  canvas.width = viewport.width;
 
-  // Reiniciar overlay
-  if (overlayCanvas) overlayCanvas.remove();
-  overlayCanvas = null;
+  await page.render({ canvasContext: context, viewport }).promise;
+  container.appendChild(canvas);
 });
 
-// === Carga de audio ===
+// === Cargar audio ===
 document.getElementById('audioFile').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
-
-  const url = URL.createObjectURL(file);
-  audioPlayer.src = url;
+  audioPlayer.src = URL.createObjectURL(file);
   document.getElementById('audioControls').style.display = 'block';
-  document.getElementById('liveControls').style.display = 'block';
-
-  loadState(file.name);
-  document.getElementById('offsetInput').value = offset;
 });
 
-// === Controles de audio ===
+// === Reproducción ===
 document.getElementById('playPause').addEventListener('click', () => {
   if (audioPlayer.paused) {
     audioPlayer.play();
@@ -156,62 +45,76 @@ document.getElementById('playPause').addEventListener('click', () => {
   }
 });
 
+// === Sincronización en tiempo real ===
 audioPlayer.addEventListener('timeupdate', () => {
-  const currentTime = audioPlayer.currentTime;
-  const duration = isNaN(audioPlayer.duration) ? 0 : audioPlayer.duration;
-  document.getElementById('timeDisplay').textContent = 
-    `${Math.floor(currentTime / 60)}:${String(Math.floor(currentTime % 60)).padStart(2, '0')} / 
-     ${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, '0')}`;
-
-  currentMeasure = calculateCurrentMeasure(currentTime);
+  const time = audioPlayer.currentTime - offset;
+  currentMeasure = time >= 0 ? Math.floor((time * bpm) / 60 / 4) : -1;
   document.getElementById('currentMeasure').textContent = `Compás: ${Math.max(0, currentMeasure)}`;
   highlightMeasure(currentMeasure);
-
-  // Loop
-  if (loopEnd > 0 && currentMeasure >= loopEnd) {
-    const loopTime = (loopStart * 4 * 60) / tempoMap[0] + offset;
-    audioPlayer.currentTime = Math.max(0, loopTime);
-  }
 });
 
-audioPlayer.addEventListener('ended', () => {
-  document.getElementById('playPause').textContent = '▶ Reproducir';
-});
+// === Resaltado anclado al PDF ===
+function createOverlay() {
+  const container = document.getElementById('scoreContainer');
+  if (!container || container.children.length === 0) return null;
 
-// === Ajuste fino de offset ===
+  if (overlayDiv) overlayDiv.remove();
+
+  overlayDiv = document.createElement('div');
+  overlayDiv.id = 'measureHighlightOverlay';
+  overlayDiv.style.position = 'absolute';
+  overlayDiv.style.top = '0';
+  overlayDiv.style.left = '0';
+  overlayDiv.style.width = '100%';
+  overlayDiv.style.height = '100%';
+  overlayDiv.style.pointerEvents = 'none';
+  overlayDiv.style.zIndex = '10';
+
+  container.style.position = 'relative';
+  container.appendChild(overlayDiv);
+  return overlayDiv;
+}
+
+function highlightMeasure(measureIndex) {
+  const overlay = createOverlay();
+  if (!overlay) return;
+  overlay.innerHTML = '';
+
+  if (measureIndex < 0) return;
+
+  // Asumimos 4 compases por fila, 3 filas → 12 compases
+  const totalMeasures = 12;
+  if (measureIndex >= totalMeasures) return;
+
+  const cols = 4;
+  const rows = 3;
+  const col = measureIndex % cols;
+  const row = Math.floor(measureIndex / cols);
+
+  const highlight = document.createElement('div');
+  highlight.style.position = 'absolute';
+  highlight.style.left = `${(col / cols) * 100}%`;
+  highlight.style.top = `${(row / rows) * 100}%`;
+  highlight.style.width = `${100 / cols}%`;
+  highlight.style.height = `${100 / rows}%`;
+  highlight.style.backgroundColor = 'rgba(255, 255, 0, 0.3)';
+  highlight.style.border = '2px solid gold';
+  highlight.style.boxSizing = 'border-box';
+
+  overlay.appendChild(highlight);
+}
+
+// === Ajuste fino de sincronización ===
 document.getElementById('adjustPlus').addEventListener('click', () => {
   offset += 0.2;
-  document.getElementById('offsetInput').value = offset;
-  saveState(audioPlayer.src ? 'current' : null);
+  document.getElementById('offsetInput').value = offset.toFixed(1);
 });
 document.getElementById('adjustMinus').addEventListener('click', () => {
   offset -= 0.2;
-  document.getElementById('offsetInput').value = offset;
-  saveState(audioPlayer.src ? 'current' : null);
+  document.getElementById('offsetInput').value = offset.toFixed(1);
 });
 
-// === Saltos en compases ===
-document.getElementById('prev2').addEventListener('click', () => jumpMeasures(-2));
-document.getElementById('prev1').addEventListener('click', () => jumpMeasures(-1));
-document.getElementById('next1').addEventListener('click', () => jumpMeasures(1));
-document.getElementById('next2').addEventListener('click', () => jumpMeasures(2));
-
-function jumpMeasures(delta) {
-  const newMeasure = Math.max(0, currentMeasure + delta);
-  const newTime = (newMeasure * 4 * 60) / tempoMap[0] + offset;
-  audioPlayer.currentTime = Math.max(0, newTime);
-}
-
-// === Loop ===
-document.getElementById('saveLoop').addEventListener('click', () => {
-  loopStart = parseInt(document.getElementById('loopStart').value) || 0;
-  loopEnd = parseInt(document.getElementById('loopEnd').value) || 0;
-  saveState(audioPlayer.src ? 'current' : null);
-});
-
-// === Limpiar overlay al hacer scroll o redimensionar ===
-window.addEventListener('resize', () => {
-  if (overlayCanvas) overlayCanvas.remove();
-  overlayCanvas = null;
-  highlightMeasure(currentMeasure);
+// === Actualizar offset desde input ===
+document.getElementById('offsetInput').addEventListener('change', (e) => {
+  offset = parseFloat(e.target.value) || 0;
 });
