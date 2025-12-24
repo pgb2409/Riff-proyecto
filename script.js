@@ -3,23 +3,23 @@ let currentMeasure = 1;
 let offset = 0;
 let bpm = 120;
 
-// === Cargar PDF ===
+// === Cargar PDF: usamos un objeto <embed> que sí se ve en todos los navegadores ===
 document.getElementById('scoreFile').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file || file.type !== 'application/pdf') return;
 
   const url = URL.createObjectURL(file);
-  const iframe = document.createElement('iframe');
-  iframe.src = url;
-  iframe.style.width = '100%';
-  iframe.style.height = '100%';
-  iframe.style.border = 'none';
-
   const container = document.getElementById('scoreContainer');
   container.innerHTML = '';
-  container.appendChild(iframe);
 
-  // Ajustar overlay
+  const embed = document.createElement('embed');
+  embed.src = url;
+  embed.type = 'application/pdf';
+  embed.width = '100%';
+  embed.height = '100%';
+  container.appendChild(embed);
+
+  // Ajustar overlay al tamaño del contenedor
   const overlay = document.getElementById('measureHighlightOverlay');
   const rect = container.getBoundingClientRect();
   overlay.style.width = rect.width + 'px';
@@ -47,7 +47,7 @@ document.getElementById('playPause').addEventListener('click', () => {
   }
 });
 
-// === Sincronización en tiempo real ===
+// === Sincronización ===
 audioPlayer.addEventListener('timeupdate', () => {
   const time = audioPlayer.currentTime - offset;
   currentMeasure = time < 0 ? 1 : Math.floor((time * bpm) / 60 / 4) + 1;
@@ -55,17 +55,17 @@ audioPlayer.addEventListener('timeupdate', () => {
   highlightMeasure(currentMeasure);
 });
 
-// === Resaltado por compás (asume 4x3 compases) ===
-function highlightMeasure(measureIndex) {
+// === Resaltado del compás (4 columnas x 3 filas = 12 compases) ===
+function highlightMeasure(measure) {
   const overlay = document.getElementById('measureHighlightOverlay');
   overlay.innerHTML = '';
 
-  if (measureIndex < 1 || measureIndex > 12) return;
+  if (measure < 1 || measure > 12) return;
 
   const cols = 4;
   const rows = 3;
-  const col = (measureIndex - 1) % cols;
-  const row = Math.floor((measureIndex - 1) / cols);
+  const col = (measure - 1) % cols;
+  const row = Math.floor((measure - 1) / cols);
 
   const w = overlay.offsetWidth / cols;
   const h = overlay.offsetHeight / rows;
@@ -83,7 +83,7 @@ function highlightMeasure(measureIndex) {
   overlay.appendChild(div);
 }
 
-// === Ajuste fino de sincronización ===
+// === Ajuste de sincronización ===
 document.getElementById('adjustPlus').addEventListener('click', () => {
   offset += 0.2;
   document.getElementById('offsetInput').value = offset.toFixed(1);
@@ -93,7 +93,7 @@ document.getElementById('adjustMinus').addEventListener('click', () => {
   document.getElementById('offsetInput').value = offset.toFixed(1);
 });
 
-// === Saltos en compases ===
+// === Saltos de compás ===
 document.getElementById('prev2').addEventListener('click', () => jumpMeasures(-2));
 document.getElementById('prev1').addEventListener('click', () => jumpMeasures(-1));
 document.getElementById('next1').addEventListener('click', () => jumpMeasures(1));
